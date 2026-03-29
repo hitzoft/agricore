@@ -2,11 +2,24 @@ import { useState, useEffect, useMemo } from 'react';
 import { Wifi, WifiOff, RefreshCw, X, Database, Cloud, CloudOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
-const NetworkStatus = () => {
+const NetworkStatus = ({ 
+  showButton = true, 
+  onOpenModal, 
+  externalShowModal, 
+  onSetShowModal 
+}: { 
+  showButton?: boolean, 
+  onOpenModal?: () => void, 
+  externalShowModal?: boolean, 
+  onSetShowModal?: (val: boolean) => void 
+}) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [internalShowModal, setInternalShowModal] = useState(false);
   
+  const showModal = externalShowModal !== undefined ? externalShowModal : internalShowModal;
+  const setShowModal = onSetShowModal || setInternalShowModal;
+
   const state = useStore();
   const syncPending = state.syncPending;
 
@@ -64,16 +77,17 @@ const NetworkStatus = () => {
 
   return (
     <>
-      <button 
-        onClick={() => setShowModal(true)}
-        className={`relative flex items-center gap-2 text-xs md:text-sm font-medium px-4 py-2 rounded-2xl shadow-lg shadow-black/5 transition-all active:scale-95 ${
-          !isOnline 
-            ? 'bg-red-500 text-white animate-pulse' 
-            : totalPending > 0 
-              ? 'bg-orange-500 text-white hover:bg-orange-600' 
-              : 'bg-agri-600 text-white hover:bg-agri-700'
-        }`}
-      >
+      {showButton && (
+        <button 
+          onClick={onOpenModal || (() => setShowModal(true))}
+          className={`relative flex items-center gap-2 text-xs md:text-sm font-medium px-4 py-2 rounded-2xl shadow-lg shadow-black/5 transition-all active:scale-95 ${
+            !isOnline 
+              ? 'bg-red-500 text-white animate-pulse' 
+              : totalPending > 0 
+                ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                : 'bg-agri-600 text-white hover:bg-agri-700'
+          }`}
+        >
         {!isOnline ? (
           <WifiOff className="w-4 h-4" />
         ) : isSyncing ? (
@@ -89,13 +103,14 @@ const NetworkStatus = () => {
               : 'Nube Sincronizada'}
         </span>
         <span className="sm:hidden font-black">{totalPending}</span>
-      </button>
+        </button>
+      )}
 
       {/* MODAL SYNC MANAGER */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-300">
-           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
-              <div className="p-8 bg-agri-900 text-white relative flex items-center gap-4">
+           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+              <div className="p-8 bg-agri-900 text-white relative flex shrink-0 items-center gap-4">
                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
                     {totalPending > 0 ? <CloudOff className="w-6 h-6 text-orange-400" /> : <Cloud className="w-6 h-6 text-agri-400" />}
                  </div>
@@ -108,20 +123,7 @@ const NetworkStatus = () => {
                  </button>
               </div>
 
-              <div className="p-8 space-y-6">
-                 {/* Connection Status Card */}
-                 <div className={`p-6 rounded-[2rem] border-2 flex items-center justify-between ${isOnline ? 'bg-agri-50/30 border-agri-100' : 'bg-red-50 border-red-100'}`}>
-                    <div className="flex items-center gap-4">
-                       <div className={`p-3 rounded-2xl ${isOnline ? 'bg-agri-600 text-white shadow-lg shadow-agri-600/20' : 'bg-red-600 text-white'}`}>
-                          {isOnline ? <Wifi className="w-5 h-5"/> : <WifiOff className="w-5 h-5"/>}
-                       </div>
-                       <div>
-                          <p className={`text-[10px] font-black uppercase tracking-widest ${isOnline ? 'text-agri-600' : 'text-red-600'}`}>Internet</p>
-                          <p className="text-sm font-bold text-slate-800">{isOnline ? 'Conexión Estable' : 'Sin conexión a red'}</p>
-                       </div>
-                    </div>
-                 </div>
-
+              <div className="p-8 space-y-6 overflow-y-auto flex-1 scrollbar-hide">
                  {/* Pending List */}
                  <div className="space-y-4">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Pendientes por Sincronizar</p>

@@ -13,7 +13,8 @@ import {
   DollarSign,
   Wallet,
   X,
-  CheckCircle2
+  CheckCircle2,
+  HelpCircle
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -27,7 +28,7 @@ const Ventas = () => {
   
   const { 
     folios, addFolio, setVentaMontoTotal, updateVentaStatus, 
-    clientes, productos, addCliente, addProducto 
+    clientes, productos, addCliente, addProducto, activeSeasonId, temporadas
   } = useStore(useShallow(state => ({
     folios: state.folios,
     addFolio: state.addFolio,
@@ -36,7 +37,9 @@ const Ventas = () => {
     clientes: state.clientes,
     productos: state.productos,
     addCliente: state.addCliente,
-    addProducto: state.addProducto
+    addProducto: state.addProducto,
+    activeSeasonId: state.activeSeasonId,
+    temporadas: state.temporadas
   })));
 
   const [selectedFolioId, setSelectedFolioId] = useState<string | null>(null);
@@ -57,12 +60,23 @@ const Ventas = () => {
     tipoVenta: 'a_definir' as 'a_definir' | 'precio_fijo',
     precioPorKilo: '',
     clienteId: '',
-    fecha: new Date().toISOString().split('T')[0]
+    fecha: new Date().toISOString().split('T')[0],
+    seasonId: activeSeasonId || ''
   });
 
   const formatThousands = (val: string) => {
     const raw = val.replace(/[^0-9]/g, '');
     return raw ? parseInt(raw).toLocaleString('en-US') : '';
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr + 'T12:00:00');
+    return new Intl.DateTimeFormat('es-MX', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date).replace(/ de /g, ' de ').replace(/ del /g, ' del ');
   };
 
   const handleOpenModal = (type: 'liquidar' | 'status' | 'confirmacion', id?: string) => {
@@ -76,6 +90,18 @@ const Ventas = () => {
     setCurrentView('detail');
   };
 
+  const handleNewVenta = () => {
+    setFormData(prev => ({ 
+      ...prev,
+      placas: '', variedad: '', peso: '', destino: '', 
+      status: 'En Ruta', tipoVenta: 'a_definir', 
+      precioPorKilo: '', clienteId: '', 
+      fecha: new Date().toISOString().split('T')[0],
+      seasonId: activeSeasonId || ''
+    }));
+    setCurrentView('form');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (currentView === 'form') {
@@ -87,14 +113,16 @@ const Ventas = () => {
         peso: formData.peso.replace(/,/g, ''),
         ...(formData.tipoVenta === 'precio_fijo' && { precioPorKilo: Number(formData.precioPorKilo) }),
         fecha: formData.fecha,
-        clienteId: formData.clienteId
+        clienteId: formData.clienteId,
+        seasonId: formData.seasonId
       });
       setFormData(prev => ({ 
         ...prev,
         placas: '', variedad: '', peso: '', destino: '', 
         status: 'En Ruta', tipoVenta: 'a_definir', 
         precioPorKilo: '', clienteId: '', 
-        fecha: new Date().toISOString().split('T')[0] 
+        fecha: new Date().toISOString().split('T')[0],
+        seasonId: activeSeasonId || ''
       }));
       setModalType('confirmacion');
       setShowModal(true);
@@ -139,12 +167,15 @@ const Ventas = () => {
   const filteredFolios = useMemo(() => {
     return folios
       .filter(f => {
+        // Strict global season filter
+        if (activeSeasonId && f.seasonId !== activeSeasonId) return false;
+        
         if (activeTab === 'Nacional') return !f.esExportacion;
         if (activeTab === 'Exportacion') return f.esExportacion;
         return true;
       })
       .sort((a, b) => b.folio.localeCompare(a.folio));
-  }, [folios, activeTab]);
+  }, [folios, activeTab, activeSeasonId]);
 
   const selectedFolio = selectedFolioId ? folios.find(f => f.id === selectedFolioId) : null;
   const calcularPagado = (abonos: any[] = []) => abonos.reduce((acc, a) => acc + a.monto, 0);
@@ -154,44 +185,41 @@ const Ventas = () => {
       
       {/* Header Dinámico */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 text-agri-600 mb-2">
-             <Truck className="w-5 h-5" />
-             <span className="text-[10px] font-black uppercase tracking-[0.3em]">{currentView === 'dashboard' ? '' : 'Control Logístico'}</span>
+        <div className="flex items-center gap-4">
+          {currentView !== 'dashboard' && (
+            <button 
+              onClick={() => {
+                if (currentView === 'detail') setCurrentView('list');
+                else setCurrentView('dashboard');
+                setSelectedFolioId(null);
+              }}
+              className="p-3 bg-white rounded-2xl shadow-sm border border-agri-100 text-agri-600 hover:bg-agri-50 transition-all active:scale-90"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div className="space-y-1">
+            <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight leading-none">
+              {currentView === 'dashboard' && 'Ventas'}
+              {currentView === 'list' && 'Historial'}
+              {currentView === 'form' && 'Venta'}
+              {currentView === 'detail' && 'Detalle'}
+            </h1>
+            <p className="text-agri-400 text-[10px] md:text-xs font-medium max-w-md leading-relaxed italic">
+              {currentView === 'dashboard' && 'Gestión de ventas de productos'}
+              {currentView === 'list' && 'Registro histórico de folios y estados de entrega.'}
+              {currentView === 'form' && 'Registro de pesaje y destino para nueva salida.'}
+              {currentView === 'detail' && 'Información detallada del folio logístico.'}
+            </p>
           </div>
-          <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">
-            {currentView === 'dashboard' && 'Ventas'}
-            {currentView === 'list' && 'Historial'}
-            {currentView === 'form' && 'Venta'}
-            {currentView === 'detail' && 'Detalle'}
-          </h1>
-          <p className="text-agri-400 text-sm font-medium max-w-md leading-relaxed italic">
-            {currentView === 'dashboard' && 'Gestión de ventas de productos'}
-            {currentView === 'list' && 'Registro histórico de folios y estados de entrega.'}
-            {currentView === 'form' && 'Registro de pesaje y destino para nueva salida.'}
-            {currentView === 'detail' && 'Información detallada del folio logístico.'}
-          </p>
         </div>
-
-        {currentView !== 'dashboard' && (
-          <button 
-            onClick={() => {
-              if (currentView === 'detail') setCurrentView('list');
-              else setCurrentView('dashboard');
-              setSelectedFolioId(null);
-            }}
-            className="flex items-center gap-2 text-agri-600 font-black text-[10px] uppercase tracking-widest bg-white border border-agri-100 px-6 py-4 rounded-2xl hover:bg-agri-50 transition-all shadow-sm active:scale-95 shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" /> Volver
-          </button>
-        )}
       </div>
 
       {/* DASHBOARD VIEW */}
       {currentView === 'dashboard' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
            <button 
-             onClick={() => setCurrentView('form')}
+             onClick={handleNewVenta}
              className="group bg-agri-600 p-10 rounded-[3rem] text-white text-left transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-agri-600/30 flex flex-col justify-between h-72 relative overflow-hidden"
            >
               <div className="absolute right-[-20%] top-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all" />
@@ -212,9 +240,9 @@ const Ventas = () => {
                 <Truck className="w-8 h-8 text-agri-600" />
               </div>
               <div>
-                <h3 className="text-3xl font-display text-agri-900 leading-tight mb-2 italic">Historial de<br/><span className="not-italic">Salidas</span></h3>
+                <h3 className="text-3xl font-display text-agri-900 leading-tight mb-2 italic">Historial de<br/><span className="not-italic">Ventas</span></h3>
                 <div className="flex items-center justify-between border-t border-agri-50 pt-4 mt-2">
-                   <p className="text-agri-400 text-[10px] font-black uppercase tracking-widest">{folios.length} Folios registrados</p>
+                   <p className="text-agri-400 text-[10px] font-black uppercase tracking-widest">{folios.filter(f => f.seasonId === activeSeasonId).length} Folios registrados</p>
                    <ChevronRight className="w-5 h-5 text-agri-300 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -239,13 +267,24 @@ const Ventas = () => {
                    </button>
                 ))}
              </div>
-             <div className="relative w-full sm:w-64">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Buscar folio..." 
-                  className="w-full bg-white border border-agri-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-agri-500/20 transition-all"
-                />
+             <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+               <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Buscar folio..." 
+                    className="w-full bg-white border border-agri-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-agri-500/20 transition-all"
+                  />
+               </div>
+
+               <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Buscar folio..." 
+                    className="w-full bg-white border border-agri-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-agri-500/20 transition-all"
+                  />
+               </div>
              </div>
           </div>
 
@@ -264,7 +303,9 @@ const Ventas = () => {
                           </div>
                           <div>
                              <h4 className="font-display text-agri-900 text-lg leading-none">{folio.folio}</h4>
-                             <p className="text-[10px] font-black text-agri-400 uppercase tracking-widest mt-1 italic">{folio.fecha}</p>
+                             <div className="flex items-center gap-2 mt-1">
+                               <p className="text-[9px] font-black text-agri-400 uppercase tracking-widest italic">{folio.fecha}</p>
+                             </div>
                           </div>
                        </div>
                        <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${
@@ -283,6 +324,11 @@ const Ventas = () => {
                           <div className="bg-gray-50/50 p-3 rounded-2xl text-center flex flex-col gap-1 border border-transparent group-hover:border-agri-50 transition-all">
                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Variedad</span>
                              <span className="text-[11px] font-black text-agri-900 uppercase truncate">{folio.variedad}</span>
+                             <div className="mt-1.5 px-2 py-1 bg-indigo-50 border border-indigo-100 rounded-lg">
+                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                                   {temporadas.find(t => t.id === folio.seasonId)?.nombre || 'Ciclo Indefinido'}
+                                </span>
+                             </div>
                           </div>
                           <div className="bg-gray-50/50 p-3 rounded-2xl text-center flex flex-col gap-1 border border-transparent group-hover:border-agri-50 transition-all">
                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Peso Neto</span>
@@ -320,36 +366,36 @@ const Ventas = () => {
       {/* FORM VIEW (Registrar Venta) */}
       {currentView === 'form' && (
         <div className="bg-white rounded-[40px] border border-agri-100 shadow-sm overflow-hidden animate-in zoom-in-95 duration-500 max-w-4xl mx-auto">
-          <div className="bg-agri-600 p-10 text-white relative">
-             <div className="absolute right-10 top-1/2 -translate-y-1/2 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-             <h2 className="text-3xl font-display italic">Detalles de la Carga</h2>
-             <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Nuevo despacho logístico</p>
+          <div className="bg-agri-600 px-8 py-4 text-white relative">
+             <div className="absolute right-8 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/10 rounded-xl blur-lg" />
+             <h2 className="text-xl font-display italic leading-none">Nueva Venta</h2>
+             <p className="text-white/60 text-[8px] font-black uppercase tracking-[0.2em] mt-1">Despacho Logístico</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-10 space-y-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Cliente Selector */}
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Cliente / Receptor</label>
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Cliente / Receptor</label>
                   <button 
                     type="button" 
                     onClick={() => setShowQuickClientModal(true)}
-                    className="text-[10px] font-black text-agri-600 uppercase flex items-center gap-1 hover:text-agri-700 transition-colors"
+                    className="text-[8px] font-black text-agri-600 uppercase flex items-center gap-1 hover:text-agri-700 transition-colors"
                   >
-                    <Plus className="w-3 h-3" /> Registrar Nuevo
+                    <Plus className="w-2.5 h-2.5" /> Registrar
                   </button>
                 </div>
                 <div className="relative group">
-                  <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-agri-400 group-focus-within:text-agri-600 transition-colors" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-agri-400 group-focus-within:text-agri-600" />
                   <select
                     required
                     value={formData.clienteId}
                     onChange={e => setFormData({...formData, clienteId: e.target.value})}
-                    className="w-full bg-agri-50/50 border border-agri-100 rounded-[1.5rem] pl-16 pr-6 py-5 text-sm font-bold text-gray-900 focus:ring-4 focus:ring-agri-500/10 transition-all outline-none appearance-none cursor-pointer"
+                    className="w-full bg-agri-50/20 border border-agri-100 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-gray-900 group-focus-within:ring-4 group-focus-within:ring-agri-500/10 transition-all outline-none appearance-none cursor-pointer"
                   >
-                    <option value="" disabled>Seleccione un cliente...</option>
+                    <option value="" disabled>Seleccione cliente...</option>
                     {clientes.filter(c => c.activo !== false).map(c => (
                       <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
@@ -358,23 +404,24 @@ const Ventas = () => {
               </div>
 
               {/* Variedad Selector */}
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Producto / Variedad</label>
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Variedad</label>
                   <button 
                     type="button" 
                     onClick={() => setShowQuickProductModal(true)}
-                    className="text-[10px] font-black text-agri-600 uppercase flex items-center gap-1 hover:text-agri-700 transition-colors"
+                    className="text-[8px] font-black text-agri-600 uppercase flex items-center gap-1 hover:text-agri-700 transition-colors"
                   >
-                    <Plus className="w-3 h-3" /> Añadir Nueva
+                    <Plus className="w-2.5 h-2.5" /> Añadir
                   </button>
                 </div>
                 <div className="relative group">
+                  <Scale className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-agri-400 group-focus-within:text-agri-600" />
                   <select
                     required
                     value={formData.variedad}
                     onChange={e => setFormData({...formData, variedad: e.target.value})}
-                    className="w-full bg-agri-50/50 border border-agri-100 rounded-[1.5rem] px-6 py-5 text-sm font-bold text-gray-900 focus:ring-4 focus:ring-agri-500/10 transition-all outline-none appearance-none cursor-pointer"
+                    className="w-full bg-agri-50/20 border border-agri-100 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-gray-900 group-focus-within:ring-4 group-focus-within:ring-agri-500/10 transition-all outline-none appearance-none cursor-pointer"
                   >
                     <option value="" disabled>Seleccione fruta...</option>
                     {productos.filter(p => p.activo !== false).map(p => (
@@ -385,111 +432,141 @@ const Ventas = () => {
               </div>
 
               {/* Placas */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Transporte (Placas)</label>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Transporte (Placas)</label>
                 <div className="relative group">
-                  <Truck className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-agri-400 group-focus-within:text-agri-600 transition-colors" />
+                  <Truck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-agri-400 group-focus-within:text-agri-600" />
                   <input
                     required
                     type="text"
                     value={formData.placas}
                     onChange={e => setFormData({...formData, placas: e.target.value.toUpperCase()})}
-                    className="w-full bg-agri-50/50 border border-agri-100 rounded-[1.5rem] pl-16 pr-6 py-5 text-sm font-bold text-gray-900 focus:ring-4 focus:ring-agri-500/10 transition-all outline-none"
-                    placeholder="Eje: ABC-1234"
+                    className="w-full bg-agri-50/20 border border-agri-100 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-gray-900 group-focus-within:ring-4 group-focus-within:ring-agri-500/10 transition-all outline-none"
+                    placeholder="ABC-1234"
                   />
                 </div>
               </div>
 
               {/* Peso */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Peso Neto (KG)</label>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Peso Neto (KG)</label>
                 <div className="relative group">
-                  <Scale className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-agri-400 group-focus-within:text-agri-600 transition-colors" />
+                  <Scale className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-agri-400 group-focus-within:text-agri-600" />
                   <input
                     required
                     type="text"
                     value={formData.peso}
                     onChange={e => setFormData({...formData, peso: formatThousands(e.target.value)})}
-                    className="w-full bg-agri-50/50 border border-agri-100 rounded-[1.5rem] pl-16 pr-6 py-5 text-xl font-display text-agri-900 focus:ring-4 focus:ring-agri-500/10 transition-all outline-none"
+                    className="w-full bg-agri-50/20 border border-agri-100 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-gray-900 group-focus-within:ring-4 group-focus-within:ring-agri-500/10 transition-all outline-none"
                     placeholder="0"
                   />
                 </div>
               </div>
 
               {/* Fecha */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Fecha de Despacho</label>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Fecha de Despacho</label>
                 <div className="relative group">
-                  <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-agri-400 group-focus-within:text-agri-600 transition-colors" />
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-agri-400 group-focus-within:text-agri-600" />
                   <input
                     required
                     type="date"
                     value={formData.fecha}
                     onChange={e => setFormData({...formData, fecha: e.target.value})}
-                    className="w-full bg-agri-50/50 border border-agri-100 rounded-[1.5rem] pl-16 pr-6 py-5 text-sm font-bold text-gray-900 focus:ring-4 focus:ring-agri-500/10 transition-all outline-none"
+                    className="w-full bg-agri-50/20 border border-agri-100 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-gray-900 group-focus-within:ring-4 group-focus-within:ring-agri-500/10 transition-all outline-none"
                   />
                 </div>
               </div>
 
-              {/* Esquema de Venta */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Modalidad Comercial</label>
-                <div className="flex gap-4 p-1.5 bg-gray-50 rounded-[1.5rem] border border-gray-100">
-                   <button 
-                     type="button"
-                     onClick={() => setFormData({...formData, tipoVenta: 'a_definir'})}
-                     className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-xl transition-all ${
-                       formData.tipoVenta === 'a_definir' ? 'bg-white text-agri-700 shadow-md shadow-agri-900/5 border border-agri-100' : 'text-gray-400 hover:text-gray-600'
-                     }`}
-                   >
-                     <Clock className="w-4 h-4" />
-                     <span className="text-[8px] font-black uppercase tracking-widest leading-none">A Liquidar</span>
-                   </button>
-                   <button 
-                     type="button"
-                     onClick={() => setFormData({...formData, tipoVenta: 'precio_fijo'})}
-                     className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-xl transition-all ${
-                       formData.tipoVenta === 'precio_fijo' ? 'bg-white text-indigo-700 shadow-md shadow-indigo-900/5 border border-indigo-100' : 'text-gray-400 hover:text-gray-600'
-                     }`}
-                   >
-                     <DollarSign className="w-4 h-4" />
-                     <span className="text-[8px] font-black uppercase tracking-widest leading-none">Precio Fijo</span>
-                   </button>
+              {/* Season Selector */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Ciclo Agrícola</label>
+                <div className="relative group">
+                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400 group-focus-within:text-indigo-600" />
+                  <select
+                    required
+                    value={formData.seasonId}
+                    onChange={e => setFormData({...formData, seasonId: e.target.value})}
+                    className="w-full bg-indigo-50/10 border border-indigo-100/30 rounded-2xl pl-11 pr-4 py-2.5 text-xs font-bold text-gray-900 group-focus-within:ring-4 group-focus-within:ring-indigo-500/10 transition-all outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>Seleccione Ciclo...</option>
+                    {temporadas.map(t => (
+                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
 
+            {/* Esquema de Venta */}
+            <div className="space-y-1.5 max-w-sm">
+              <div className="flex items-center gap-2 ml-2">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Modalidad de Precio</label>
+                <div className="group relative">
+                  <HelpCircle className="w-3.5 h-3.5 text-agri-400 cursor-help" />
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-3 bg-slate-900 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[70] shadow-xl border border-white/10">
+                    <p className="font-bold mb-1 border-b border-white/10 pb-1 uppercase tracking-widest">Tipos de Precio</p>
+                    <p className="mb-1.5"><span className="text-agri-400">Por Definir:</span> El camión sale sin precio pactado. Se establece el monto después en Cobranza.</p>
+                    <p><span className="text-indigo-400">Precio Fijo:</span> Se pacta el precio ($) por kilo en este momento y se genera la deuda automática.</p>
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-slate-900 rotate-45" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 p-1 bg-gray-50 rounded-2xl border border-gray-100">
+                 <button 
+                   type="button"
+                   onClick={() => setFormData({...formData, tipoVenta: 'a_definir'})}
+                   className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl transition-all ${
+                     formData.tipoVenta === 'a_definir' ? 'bg-white text-agri-700 shadow-sm border border-agri-100' : 'text-gray-400 hover:text-gray-600'
+                   }`}
+                 >
+                   <Clock className="w-3.5 h-3.5" />
+                   <span className="text-[7px] font-black uppercase tracking-widest">Precio por definir</span>
+                 </button>
+                 <button 
+                   type="button"
+                   onClick={() => setFormData({...formData, tipoVenta: 'precio_fijo'})}
+                   className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl transition-all ${
+                     formData.tipoVenta === 'precio_fijo' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-400 hover:text-gray-600'
+                   }`}
+                 >
+                   <DollarSign className="w-3.5 h-3.5" />
+                   <span className="text-[7px] font-black uppercase tracking-widest">Precio Fijo</span>
+                 </button>
+              </div>
+            </div>
+
             {formData.tipoVenta === 'precio_fijo' && (
-              <div className="animate-in slide-in-from-top-4 duration-500 p-8 bg-indigo-50/30 rounded-[2.5rem] border border-indigo-100/50 space-y-4">
-                 <label className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] ml-1">Inversión Final / Precio por Kilo ($)</label>
+              <div className="animate-in slide-in-from-top-4 duration-500 p-6 bg-indigo-50/30 rounded-3xl border border-indigo-100/50 space-y-3">
+                 <label className="text-[9px] font-black text-indigo-400 uppercase tracking-widest ml-1">Precio por Kilo ($)</label>
                  <div className="relative group">
-                    <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-indigo-500 group-focus-within:text-indigo-600 transition-colors" />
+                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-500 group-focus-within:text-indigo-600" />
                     <input
                       required
                       type="number"
                       step="0.01"
                       value={formData.precioPorKilo}
                       onChange={e => setFormData({...formData, precioPorKilo: e.target.value})}
-                      className="w-full bg-white border border-indigo-200 rounded-[1.5rem] pl-16 pr-6 py-6 text-2xl font-display text-indigo-900 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none italic"
+                      className="w-full bg-white border border-indigo-200 rounded-2xl pl-11 pr-4 py-3 text-lg font-display text-indigo-900 outline-none italic"
                       placeholder="0.00"
                     />
                  </div>
               </div>
             )}
 
-            <div className="flex gap-4 pt-10 border-t border-agri-50">
+            <div className="flex gap-3 pt-6 border-t border-agri-50">
                <button 
                  type="button" 
                  onClick={() => setCurrentView('dashboard')}
-                 className="flex-1 px-8 py-5 border-2 border-agri-50 text-agri-300 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-agri-50 hover:text-agri-400 transition-all active:scale-95"
+                 className="flex-1 px-6 py-4 border border-agri-50 text-agri-300 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-agri-50 hover:text-agri-400 transition-all active:scale-95"
                >
-                 Descartar
+                 Cancelar
                </button>
                <button 
                  type="submit" 
-                 className="flex-[2] bg-agri-600 text-white rounded-[1.5rem] py-5 font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl shadow-agri-600/30 hover:bg-agri-700 relative overflow-hidden"
+                 className="flex-[2] bg-agri-600 text-white rounded-2xl py-4 font-black text-[9px] uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-agri-600/30 hover:bg-agri-700"
                >
-                 Confirmar Despacho
+                 Confirmar Venta
                </button>
             </div>
           </form>
@@ -515,27 +592,33 @@ const Ventas = () => {
                           </div>
                           <div>
                             <div className="flex items-center gap-3 mb-1">
-                               <h2 className="text-4xl font-display text-agri-900 italic tracking-tight">Folio {selectedFolio.folio}</h2>
-                               <span className="text-[10px] font-black text-agri-400 bg-agri-50 px-3 py-1 rounded-lg border border-agri-100 uppercase tracking-widest">{selectedFolio.tipoVenta === 'precio_fijo' ? 'Fijo' : 'Variable'}</span>
+                               <h2 className="text-4xl font-display text-agri-900 italic tracking-tight">{selectedFolio.folio}</h2>
                             </div>
-                            <p className="text-gray-400 text-xs font-bold flex items-center gap-2 uppercase tracking-tighter">
-                               {selectedFolio.fecha} • {folios.find(f => f.id === selectedFolio.id)?.status}
-                            </p>
+                            <div className="space-y-1">
+                               <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest leading-none">
+                                  {formatDate(selectedFolio.fecha)}
+                               </p>
+                               <div className="flex items-center gap-2">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${selectedFolio.status === 'Liquidado' ? 'bg-agri-500' : 'bg-orange-500'} animate-pulse`} />
+                                  <span className="text-[11px] font-black text-agri-900 uppercase tracking-widest">{folios.find(f => f.id === selectedFolio.id)?.status || selectedFolio.status}</span>
+                               </div>
+                            </div>
                           </div>
                        </div>
                        <div className="flex gap-3">
                           <button 
                             onClick={() => handleOpenModal('status', selectedFolio.id)}
-                            className="bg-white border border-agri-100 p-4 rounded-2xl text-agri-600 hover:bg-agri-50 transition-all shadow-sm"
+                            className="bg-white border border-agri-100 px-6 py-4 rounded-2xl text-agri-600 font-black text-[10px] uppercase tracking-widest hover:bg-agri-50 transition-all shadow-sm flex items-center gap-2"
                           >
-                            <Clock className="w-5 h-5" />
+                            <Clock className="w-4 h-4" />
+                            Cambiar Estado
                           </button>
                           {selectedFolio.montoTotal === 0 && (
                             <button 
                               onClick={() => handleOpenModal('liquidar', selectedFolio.id)}
-                              className="bg-agri-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-agri-600/20 active:scale-95 transition-all"
+                               className="bg-agri-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-agri-600/20 active:scale-95 transition-all"
                             >
-                              Liquidar
+                              Definir Precio
                             </button>
                           )}
                        </div>
@@ -576,7 +659,7 @@ const Ventas = () => {
                           <div>
                              <p className="text-[10px] font-black text-agri-400 uppercase tracking-widest mb-1">Monto Total Bruto</p>
                              <p className={`text-2xl font-display italic ${selectedFolio.montoTotal > 0 ? 'text-agri-900' : 'text-orange-400'}`}>
-                                {selectedFolio.montoTotal > 0 ? `$${selectedFolio.montoTotal.toLocaleString()}` : 'A Liquidar'}
+                                {selectedFolio.montoTotal > 0 ? `$${selectedFolio.montoTotal.toLocaleString()}` : 'Por definir'}
                              </p>
                           </div>
                           <DollarSign className="w-8 h-8 text-agri-200" />
@@ -601,7 +684,7 @@ const Ventas = () => {
                          </div>
                        ) : (
                          <div className="text-center py-4 border-2 border-dashed border-white/10 rounded-2xl opacity-40 italic">
-                            <span className="text-[9px] uppercase font-black">Pendiente de Liquidar</span>
+                            <span className="text-[9px] uppercase font-black">Precio por definir</span>
                          </div>
                        )}
                     </div>
@@ -805,7 +888,7 @@ const Ventas = () => {
                        >
                          <option value="En Ruta">En Ruta</option>
                          <option value="Entregado">Entregado</option>
-                         <option value="Liquidado">Liquidado</option>
+                         <option value="Liquidado" disabled>Liquidado (Automático)</option>
                        </select>
                     </div>
                     <div className="space-y-3">

@@ -15,6 +15,17 @@ import { generatePayrollPDF } from '../utils/reportGenerator';
 import ConfirmModal from '../components/ConfirmModal';
 import { getWeekFromDate, getCurrentWeek, getDatesFromWeek } from '../utils/dateUtils';
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  return new Intl.DateTimeFormat('es-MX', { 
+    day: '2-digit', 
+    month: 'long', 
+    year: 'numeric' 
+  }).format(date);
+};
+
 const Nomina = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'Cuadrillas' | 'Rayas' | 'Historial'>('Rayas');
@@ -37,7 +48,7 @@ const Nomina = () => {
     cuadrillas, rayasSemanales, huertasRaw, cabosRaw,
     addCuadrilla, generarNominaActiva, toggleAsistencia, setExtras,
     cerrarNomina, addToast, setAsistenciaMasiva,
-    pagosNominaSemanal
+    pagosNominaSemanal, activeSeasonId
   } = useStore(useShallow(state => ({
     cuadrillas: state.cuadrillas,
     rayasSemanales: state.rayasSemanales,
@@ -50,18 +61,29 @@ const Nomina = () => {
     cerrarNomina: state.cerrarNomina,
     addToast: state.addToast,
     setAsistenciaMasiva: state.setAsistenciaMasiva,
-    pagosNominaSemanal: state.pagosNominaSemanal
+    pagosNominaSemanal: state.pagosNominaSemanal,
+    activeSeasonId: state.activeSeasonId
   })));
 
   const huertas = useMemo(() => huertasRaw.filter(h => h.activo !== false), [huertasRaw]);
   const cabos = useMemo(() => cabosRaw.filter(c => c.activo !== false), [cabosRaw]);
-  const rayasActuales = useMemo(() => rayasSemanales.filter(r => r.semana === semanaSeleccionada), [rayasSemanales, semanaSeleccionada]);
+  const rayasActuales = useMemo(() => rayasSemanales.filter(r => {
+    const matchSemana = r.semana === semanaSeleccionada;
+    const matchSeason = activeSeasonId ? r.seasonId === activeSeasonId : true;
+    return matchSemana && matchSeason;
+  }), [rayasSemanales, semanaSeleccionada, activeSeasonId]);
+
   const isCerrada = rayasActuales.length > 0 && rayasActuales[0].cerrada;
+
   const cuadrillasActuales = useMemo(() => 
     cuadrillas
-      .filter(c => c.semana === semanaSeleccionada)
+      .filter(c => {
+        const matchSemana = c.semana === semanaSeleccionada;
+        const matchSeason = activeSeasonId ? c.seasonId === activeSeasonId : true;
+        return matchSemana && matchSeason;
+      })
       .sort((a, b) => b.fecha.localeCompare(a.fecha)),
-    [cuadrillas, semanaSeleccionada]
+    [cuadrillas, semanaSeleccionada, activeSeasonId]
   );
 
   const paginatedRayas = useMemo(() => {
@@ -159,7 +181,19 @@ const Nomina = () => {
     e.preventDefault();
     if (!formCuadrilla.caboId || !formCuadrilla.huertaId) return addToast('Debe seleccionar Cabo y Huerta', 'error');
     const semanaCalc = getWeekFromDate(formCuadrilla.fecha);
-    addCuadrilla({ cabo: formCuadrilla.caboId, huerta: formCuadrilla.huertaId, personas: Number(formCuadrilla.personas), tarifa: Number(formCuadrilla.tarifa), flete: Number(formCuadrilla.flete), comida: Number(formCuadrilla.comida), otrosGastos: Number(formCuadrilla.otrosGastos || 0), otrosGastosDesc: formCuadrilla.otrosGastosDesc || '', fecha: formCuadrilla.fecha, semana: semanaCalc });
+    addCuadrilla({ 
+      cabo: formCuadrilla.caboId, 
+      huerta: formCuadrilla.huertaId, 
+      personas: Number(formCuadrilla.personas), 
+      tarifa: Number(formCuadrilla.tarifa), 
+      flete: Number(formCuadrilla.flete), 
+      comida: Number(formCuadrilla.comida), 
+      otrosGastos: Number(formCuadrilla.otrosGastos || 0), 
+      otrosGastosDesc: formCuadrilla.otrosGastosDesc || '', 
+      fecha: formCuadrilla.fecha, 
+      semana: semanaCalc,
+      seasonId: activeSeasonId 
+    });
     setShowModalCuadrilla(false);
     setFormCuadrilla({ caboId: '', huertaId: '', personas: '', tarifa: '', flete: '', comida: '', otrosGastos: '', otrosGastosDesc: '', fecha: new Date().toISOString().split('T')[0] });
     addToast('Asistencia de cabo registrada correctamente.', 'success');
@@ -449,7 +483,7 @@ const Nomina = () => {
                           <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h3 className="text-lg font-black text-gray-900 group-hover:text-agri-600 transition-colors">{c.cabo}</h3>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{c.fecha}</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formatDate(c.fecha)}</p>
                             </div>
                             <div className="flex items-center gap-1.5 group/status relative">
                               <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-widest ${statusColor.badge}`}>
@@ -499,7 +533,7 @@ const Nomina = () => {
                           </div>
 
                           <div className="mb-4 mt-auto">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Costo Diario</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">COSTO</p>
                             <div className="flex items-baseline gap-1.5">
                                 <span className="text-3xl font-black text-gray-900">${totalDiario.toLocaleString()}</span>
                                 <span className="text-xs font-bold text-gray-400">total</span>
@@ -521,16 +555,16 @@ const Nomina = () => {
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-gray-600">
                                     <div className="flex items-center gap-1">
                                       <CircleDollarSign className="w-3 h-3 text-gray-400" />
-                                      <span>Fija: ${c.personas * c.tarifa}</span>
+                                      <span>Personal: ${(c.personas * c.tarifa).toLocaleString()}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                       <CircleDollarSign className="w-3 h-3 text-gray-400" />
-                                      <span>Ayudas: ${c.flete + c.comida}</span>
+                                      <span>Ayudas: ${(c.flete + c.comida).toLocaleString()}</span>
                                     </div>
                                     {c.otrosGastos > 0 && (
                                       <div className="flex items-center gap-1">
                                         <CircleDollarSign className="w-3 h-3 text-gray-400" />
-                                        <span>Otros: ${c.otrosGastos}</span>
+                                        <span>Otros: ${c.otrosGastos.toLocaleString()}</span>
                                       </div>
                                     )}
                                 </div>
@@ -904,53 +938,52 @@ const Nomina = () => {
       {showModalCuadrilla && (
          <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-300 border border-gray-100">
-             {/* Modal Header */}
              <div className="bg-agri-600 px-8 py-4 text-white relative shrink-0">
-               <div className="absolute top-4 right-8 p-2 bg-white/20 rounded-xl backdrop-blur-xl">
-                 <Users className="w-5 h-5 text-white" />
+               <div className="absolute top-1/2 -translate-y-1/2 right-8 p-1.5 bg-white/20 rounded-xl">
+                 <Users className="w-4 h-4 text-white" />
                </div>
-               <h2 className="text-xl font-display text-white italic tracking-tighter uppercase mb-0.5">Registro de Cuadrilla</h2>
-               <p className="text-white/60 text-[8px] font-bold uppercase tracking-[0.2em]">Actividad y costos del equipo externo</p>
+               <h2 className="text-xl font-display text-white italic tracking-tighter uppercase leading-none">Registro de Cuadrilla</h2>
+               <p className="text-white/60 text-[8px] font-black uppercase tracking-[0.2em] mt-1">Actividad y costos</p>
              </div>
- 
-             <form onSubmit={handleCuadrillaSubmit} className="p-8 space-y-6">
+  
+             <form onSubmit={handleCuadrillaSubmit} className="p-6 space-y-4">
                {/* Primary Info Set */}
                <div className="space-y-4">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div className="space-y-1.5 text-left">
-                      <label className="font-display text-sm text-agri-900 ml-1 opacity-80">Seleccionar Cabo</label>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1 text-left">
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Cabo</label>
                      <div className="relative group">
                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-agri-500 transition-colors" />
                        <select 
                          required 
                          value={formCuadrilla.caboId} 
                          onChange={e => setFormCuadrilla({ ...formCuadrilla, caboId: e.target.value })} 
-                          className="w-full bg-agri-50/20 border border-agri-100/30 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold text-gray-700 outline-none focus:ring-4 focus:ring-agri-500/10 focus:border-agri-500 transition-all appearance-none cursor-pointer"
+                          className="w-full bg-agri-50/20 border border-agri-100/30 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-gray-700 outline-none focus:ring-4 focus:ring-agri-500/10 focus:border-agri-500 transition-all appearance-none cursor-pointer"
                        >
-                         <option value="" disabled>Nombre del Cabo...</option>
+                         <option value="" disabled>Seleccionar Cabo...</option>
                          {cabos.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
                        </select>
                      </div>
                    </div>
-                   <div className="space-y-1.5 text-left">
-                     <label className="font-display text-sm text-agri-900 ml-1 opacity-80">Huerta / Sector</label>
+                   <div className="space-y-1 text-left">
+                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Huerta / Sector</label>
                      <div className="relative group">
                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-agri-500 transition-colors" />
                        <select 
                          required 
                          value={formCuadrilla.huertaId} 
                          onChange={e => setFormCuadrilla({ ...formCuadrilla, huertaId: e.target.value })} 
-                          className="w-full bg-agri-50/20 border border-agri-100/30 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold text-gray-700 outline-none focus:ring-4 focus:ring-agri-500/10 focus:border-agri-500 transition-all appearance-none cursor-pointer"
+                          className="w-full bg-agri-50/20 border border-agri-100/30 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-gray-700 outline-none focus:ring-4 focus:ring-agri-500/10 focus:border-agri-500 transition-all appearance-none cursor-pointer"
                        >
-                         <option value="" disabled>Lugar de Trabajo...</option>
+                         <option value="" disabled>Seleccionar Huerta...</option>
                          {huertas.map(h => <option key={h.id} value={h.nombre}>{h.nombre}</option>)}
                        </select>
                      </div>
                    </div>
                  </div>
- 
-                 <div className="space-y-1.5 text-left">
-                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Fecha de Registro</label>
+  
+                 <div className="space-y-1 text-left">
+                   <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Fecha de Registro</label>
                    <div className="relative group">
                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-agri-500 transition-colors" />
                      <input 
@@ -958,90 +991,89 @@ const Nomina = () => {
                        required 
                        value={formCuadrilla.fecha} 
                        onChange={e => setFormCuadrilla({ ...formCuadrilla, fecha: e.target.value })} 
-                        className="w-full bg-agri-50/20 border border-agri-100/30 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold text-gray-700 outline-none focus:ring-4 focus:ring-agri-500/10 focus:border-agri-500 transition-all cursor-pointer" 
+                        className="w-full bg-agri-50/20 border border-agri-100/30 rounded-2xl pl-11 pr-4 py-2.5 text-xs font-bold text-gray-700 outline-none focus:ring-4 focus:ring-agri-500/10 focus:border-agri-500 transition-all cursor-pointer" 
                      />
                    </div>
                  </div>
                </div>
- 
-               {/* Metrics/Costs Partition */}
-               <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
-                 <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                   <div className="space-y-1.5">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Personal</label>
-                     <div className="relative">
-                       <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                       <input 
-                         type="number" 
-                         placeholder="Ej: 15" 
-                         required 
-                         value={formCuadrilla.personas} 
-                         onChange={e => setFormCuadrilla({ ...formCuadrilla, personas: e.target.value })} 
-                         className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 outline-none" 
-                       />
-                     </div>
-                   </div>
-                   <div className="space-y-1.5">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Tarifa Fija</label>
-                     <div className="relative">
-                       <CircleDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                       <input 
-                         type="number" 
-                         placeholder="Sueldo base" 
-                         required 
-                         value={formCuadrilla.tarifa} 
-                         onChange={e => setFormCuadrilla({ ...formCuadrilla, tarifa: e.target.value })} 
-                         className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 outline-none" 
-                       />
-                     </div>
-                   </div>
-                   <div className="space-y-1.5">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Flete</label>
-                     <div className="relative">
-                       <TrendingUp className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                       <input 
-                         type="number" 
-                         placeholder="Transporte" 
-                         required 
-                         value={formCuadrilla.flete} 
-                         onChange={e => setFormCuadrilla({ ...formCuadrilla, flete: e.target.value })} 
-                         className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 outline-none" 
-                       />
-                     </div>
-                   </div>
-                   <div className="space-y-1.5">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Comida</label>
-                     <div className="relative">
-                       <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                       <input 
-                         type="number" 
-                         placeholder="Viáticos" 
-                         required 
-                         value={formCuadrilla.comida} 
-                         onChange={e => setFormCuadrilla({ ...formCuadrilla, comida: e.target.value })} 
-                         className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 outline-none" 
-                       />
-                     </div>
-                   </div>
-                 </div>
-               </div>
- 
-               {/* Footer Actions */}
-               <div className="flex gap-4 pt-2">
-                 <button 
-                   type="button" 
-                   onClick={() => setShowModalCuadrilla(false)} 
-                   className="flex-1 px-6 py-4 border border-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-50 transition-colors"
-                 >
-                   Cancelar
-                 </button>
-                 <button 
-                   type="submit" 
-                   className="flex-1 bg-agri-600 text-white rounded-2xl py-4 font-black text-xs uppercase tracking-widest hover:bg-agri-700 shadow-xl shadow-agri-100 transition-all active:scale-95"
-                 >
-                   Guardar Registro
-                 </button>
-               </div>
+                   {/* Metrics/Costs Partition */}
+                <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Personal</label>
+                      <div className="relative">
+                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        <input 
+                          type="number" 
+                          placeholder="0" 
+                          required 
+                          value={formCuadrilla.personas} 
+                          onChange={e => setFormCuadrilla({ ...formCuadrilla, personas: e.target.value })} 
+                          className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-xs font-bold focus:border-agri-500 outline-none" 
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Tarifa</label>
+                      <div className="relative">
+                        <CircleDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        <input 
+                          type="number" 
+                          placeholder="0.00" 
+                          required 
+                          value={formCuadrilla.tarifa} 
+                          onChange={e => setFormCuadrilla({ ...formCuadrilla, tarifa: e.target.value })} 
+                          className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-xs font-bold focus:border-agri-500 outline-none" 
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Flete</label>
+                      <div className="relative">
+                        <TrendingUp className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        <input 
+                          type="number" 
+                          placeholder="0.00" 
+                          required 
+                          value={formCuadrilla.flete} 
+                          onChange={e => setFormCuadrilla({ ...formCuadrilla, flete: e.target.value })} 
+                          className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-xs font-bold focus:border-agri-500 outline-none" 
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Comida</label>
+                      <div className="relative">
+                        <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        <input 
+                          type="number" 
+                          placeholder="0.00" 
+                          required 
+                          value={formCuadrilla.comida} 
+                          onChange={e => setFormCuadrilla({ ...formCuadrilla, comida: e.target.value })} 
+                          className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-xs font-bold focus:border-agri-500 outline-none" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+  
+                {/* Footer Actions */}
+                <div className="flex gap-3 pt-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowModalCuadrilla(false)} 
+                    className="flex-1 px-4 py-3 border border-gray-200 text-gray-400 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="flex-1 bg-agri-600 text-white rounded-2xl py-3 font-black text-[9px] uppercase tracking-widest hover:bg-agri-700 shadow-xl shadow-agri-100 transition-all active:scale-95"
+                  >
+                    Guardar
+                  </button>
+                </div>
              </form>
            </div>
          </div>

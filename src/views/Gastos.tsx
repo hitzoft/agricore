@@ -26,20 +26,24 @@ const Gastos = () => {
   const [dateEnd, setDateEnd] = useState('');
 
   // Consolidated Store access
-  const { 
+  const {
     gastos, 
     proveedoresRaw, 
     addGasto, 
     addAbonoGasto,
     cuentasRaw,
-    addProveedor
+    addProveedor,
+    activeSeasonId,
+    temporadas
   } = useStore(useShallow(state => ({
     gastos: state.gastos,
     proveedoresRaw: state.proveedores,
     addGasto: state.addGasto,
     addAbonoGasto: state.addAbonoGasto,
     cuentasRaw: state.cuentasBancarias,
-    addProveedor: state.addProveedor
+    addProveedor: state.addProveedor,
+    activeSeasonId: state.activeSeasonId,
+    temporadas: state.temporadas
   })));
 
   const proveedores = useMemo(() => proveedoresRaw.filter(p => p.activo !== false), [proveedoresRaw]);
@@ -56,6 +60,9 @@ const Gastos = () => {
 
   const filteredGastos = useMemo(() => {
     return gastos.filter(g => {
+      // Season filter
+      if (activeSeasonId && g.seasonId !== activeSeasonId) return false;
+
       // Category filter
       if (activeCategory && g.categoria !== activeCategory) return false;
 
@@ -98,7 +105,7 @@ const Gastos = () => {
       if (!b.fullDate) return -1;
       return b.fullDate.localeCompare(a.fullDate);
     });
-  }, [gastos, searchTerm, filterType, selectedMonth, dateStart, dateEnd, activeCategory]);
+  }, [gastos, searchTerm, filterType, selectedMonth, dateStart, dateEnd, activeCategory, activeSeasonId]);
 
   const [formGasto, setFormGasto] = useState({ 
     proveedorId: '', 
@@ -109,7 +116,8 @@ const Gastos = () => {
     tieneComprobante: false, 
     metodo: 'Efectivo' as 'Efectivo' | 'Cuenta' | 'Crédito', 
     cuentaId: '',
-    categoria: 'Operativo' as GastoCategoria
+    categoria: 'Operativo' as GastoCategoria,
+    seasonId: activeSeasonId || ''
   });
 
   const [showAbonoModal, setShowAbonoModal] = useState(false);
@@ -172,7 +180,8 @@ const Gastos = () => {
       tieneComprobante: formGasto.tieneComprobante,
       metodo: formGasto.metodo,
       ...(formGasto.metodo === 'Cuenta' && { cuentaId: formGasto.cuentaId }),
-      categoria: formGasto.categoria
+      categoria: formGasto.categoria,
+      seasonId: formGasto.seasonId
     });
     setShowModalGasto(false);
     setFormGasto({ 
@@ -184,7 +193,8 @@ const Gastos = () => {
       tieneComprobante: false, 
       metodo: 'Efectivo', 
       cuentaId: '',
-      categoria: activeCategory || 'Operativo'
+      categoria: activeCategory || 'Operativo',
+      seasonId: activeSeasonId || ''
     });
   };
 
@@ -422,6 +432,11 @@ const Gastos = () => {
                           <Calendar className="w-3.5 h-3.5 text-gray-300" />
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{gasto.fecha}</p>
                         </div>
+                        <div className="mt-1.5 px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded-lg inline-block">
+                           <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                              {temporadas.find(t => t.id === gasto.seasonId)?.nombre || 'Ciclo Indefinido'}
+                           </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -468,31 +483,33 @@ const Gastos = () => {
       {showModalGasto && (
         <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-300">
           <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[95vh]">
-            <div className={`px-10 py-8 text-white relative shrink-0 ${activeCategory ? gastosConfig[activeCategory].color : 'bg-agri-600'}`}>
-              <h2 className="text-2xl font-display">Registrar Gasto</h2>
-              <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em]">{activeCategory || 'Operativo'}</p>
+            <div className={`px-8 py-5 text-white relative shrink-0 ${activeCategory ? gastosConfig[activeCategory].color : 'bg-agri-600'}`}>
+              <div className="flex flex-col">
+                <h2 className="text-xl font-display leading-none">Registrar Gasto</h2>
+                <p className="text-white/60 text-[9px] font-black uppercase tracking-[0.2em] mt-1">{activeCategory || 'Operativo'}</p>
+              </div>
               <button 
                 onClick={() => setShowModalGasto(false)}
-                className="absolute top-8 right-10 p-2.5 bg-white/20 hover:bg-white/30 rounded-2xl"
+                className="absolute top-1/2 -translate-y-1/2 right-8 p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all active:scale-90"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-10 overflow-y-auto custom-scrollbar">
-              <form onSubmit={handleGastoSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] font-black text-agri-900/40 uppercase tracking-widest ml-2">
-                      {['Insumos', 'Fijo', 'Operativo'].includes(formGasto.categoria) ? 'Proveedor (Obligatorio)' : 'Beneficiario / Vendedor'}
+            <div className="p-6 overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleGastoSubmit} className="space-y-4">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[9px] font-black text-agri-900/40 uppercase tracking-widest ml-2">
+                      {['Insumos', 'Fijo', 'Operativo'].includes(formGasto.categoria) ? 'Proveedor' : 'Beneficiario'}
                     </label>
                     {['Insumos', 'Fijo', 'Operativo'].includes(formGasto.categoria) && (
                       <button 
                         type="button" 
                         onClick={() => setShowModalNuevoProveedor(true)}
-                        className="text-[9px] font-black text-agri-600 bg-agri-50 px-3 py-1.5 rounded-xl border border-agri-100 hover:bg-agri-600 hover:text-white transition-all active:scale-95"
+                        className="text-[8px] font-black text-agri-600 hover:text-agri-700 transition-colors uppercase tracking-widest"
                       >
-                        + Nuevo Proveedor
+                        + Nuevo
                       </button>
                     )}
                   </div>
@@ -502,7 +519,7 @@ const Gastos = () => {
                       required 
                       value={formGasto.proveedorId} 
                       onChange={e => setFormGasto({...formGasto, proveedorId: e.target.value})} 
-                      className="w-full bg-agri-50/50 border border-agri-100/50 rounded-[1.5rem] px-6 py-4 text-sm font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none appearance-none cursor-pointer"
+                      className="w-full bg-agri-50/50 border border-agri-100/50 rounded-2xl px-5 py-3 text-xs font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none appearance-none cursor-pointer"
                     >
                       <option value="" disabled>Seleccionar Proveedor...</option>
                       {proveedores.map(prov => (
@@ -514,51 +531,52 @@ const Gastos = () => {
                       type="text" 
                       value={formGasto.proveedorId} 
                       onChange={e => setFormGasto({...formGasto, proveedorId: e.target.value})} 
-                      className="w-full bg-agri-50/50 border border-agri-100/50 rounded-[1.5rem] px-6 py-4 text-sm font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none" 
-                      placeholder="Ej: Taller Mecánico, Farmacia, etc."
+                      className="w-full bg-agri-50/50 border border-agri-100/50 rounded-2xl px-5 py-3 text-xs font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none" 
+                      placeholder="Ej: Taller Mecánico..."
                     />
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-agri-900/40 uppercase tracking-widest ml-2">Concepto / Descripción</label>
-                  <input 
-                    required 
-                    type="text" 
-                    value={formGasto.concepto} 
-                    onChange={e => setFormGasto({...formGasto, concepto: e.target.value})} 
-                    className="w-full bg-agri-50/50 border border-agri-100/50 rounded-[1.5rem] px-6 py-4 text-sm font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none" 
-                    placeholder="Ej: Pago de flete"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-agri-900/40 uppercase tracking-widest ml-2">Importe ($)</label>
-                    <input required type="number" step="0.01" value={formGasto.monto} onChange={e => setFormGasto({...formGasto, monto: e.target.value})} className="w-full bg-agri-50/50 border border-agri-100/50 rounded-[1.5rem] px-6 py-4 text-lg font-black text-agri-600 focus:ring-4 focus:ring-agri-500/10 outline-none text-center" placeholder="0.00" />
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2 space-y-1">
+                    <label className="text-[9px] font-black text-agri-900/40 uppercase tracking-widest ml-2">Concepto</label>
+                    <input 
+                      required 
+                      type="text" 
+                      value={formGasto.concepto} 
+                      onChange={e => setFormGasto({...formGasto, concepto: e.target.value})} 
+                      className="w-full bg-agri-50/50 border border-agri-100/50 rounded-2xl px-5 py-3 text-xs font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none" 
+                      placeholder="Descripción del gasto"
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-agri-900/40 uppercase tracking-widest ml-2">Folio (Opcional)</label>
-                    <input type="text" value={formGasto.folio} onChange={e => setFormGasto({...formGasto, folio: e.target.value})} className="w-full bg-agri-50/50 border border-agri-100/50 rounded-[1.5rem] px-6 py-4 text-sm font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none text-center" placeholder="XXX-22" />
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-agri-900/40 uppercase tracking-widest ml-2">Folio</label>
+                    <input type="text" value={formGasto.folio} onChange={e => setFormGasto({...formGasto, folio: e.target.value})} className="w-full bg-agri-50/50 border border-agri-100/50 rounded-2xl px-5 py-3 text-xs font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none text-center" placeholder="XXX" />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-agri-900/40 uppercase tracking-widest ml-2">Fecha</label>
-                  <input required type="date" value={formGasto.fecha} onChange={e => setFormGasto({...formGasto, fecha: e.target.value})} className="w-full bg-agri-50/50 border border-agri-100/50 rounded-[1.5rem] px-6 py-4 text-sm font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-agri-900/40 uppercase tracking-widest ml-2">Importe ($)</label>
+                    <input required type="number" step="0.01" value={formGasto.monto} onChange={e => setFormGasto({...formGasto, monto: e.target.value})} className="w-full bg-agri-50/50 border border-agri-100/50 rounded-2xl px-5 py-3 text-base font-black text-agri-600 focus:ring-4 focus:ring-agri-500/10 outline-none text-center" placeholder="0.00" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-agri-900/40 uppercase tracking-widest ml-2">Fecha</label>
+                    <input required type="date" value={formGasto.fecha} onChange={e => setFormGasto({...formGasto, fecha: e.target.value})} className="w-full bg-agri-50/50 border border-agri-100/50 rounded-2xl px-5 py-3 text-xs font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none" />
+                  </div>
                 </div>
 
-                <div className="space-y-4 p-6 bg-agri-50/30 rounded-[2rem] border border-agri-100/50">
-                  <label className="text-[10px] font-black text-agri-900/40 uppercase tracking-widest ml-2 block">Método de Pago</label>
-                  <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-3 p-4 bg-agri-50/30 rounded-2xl border border-agri-100/50">
+                  <label className="text-[9px] font-black text-agri-900/40 uppercase tracking-widest ml-2 block leading-none">Método de Pago</label>
+                  <div className="grid grid-cols-3 gap-2">
                     {['Efectivo', 'Cuenta', 'Crédito'].map((m: any) => (
                       <button 
                         key={m} 
                         type="button" 
                         onClick={() => setFormGasto({...formGasto, metodo: m})} 
-                        className={`py-4 rounded-2xl flex flex-col items-center justify-center gap-2 text-[10px] font-black transition-all border-2 ${formGasto.metodo === m ? 'bg-white text-agri-600 border-agri-600 shadow-lg scale-105' : 'bg-transparent text-gray-300 border-agri-100/50 opacity-60'}`}
+                        className={`py-3 rounded-xl flex items-center justify-center gap-2 text-[9px] font-black transition-all border ${formGasto.metodo === m ? 'bg-white text-agri-600 border-agri-600 shadow-sm scale-105' : 'bg-transparent text-gray-300 border-agri-100/50'}`}
                       >
-                         {m === 'Efectivo' ? <Banknote className="w-5 h-5"/> : m === 'Cuenta' ? <CreditCard className="w-5 h-5"/> : <Coins className="w-5 h-5"/>}
+                         {m === 'Efectivo' ? <Banknote size={12}/> : m === 'Cuenta' ? <CreditCard size={12}/> : <Coins size={12}/>}
                          {m}
                       </button>
                     ))}
@@ -568,7 +586,7 @@ const Gastos = () => {
                       required 
                       value={formGasto.cuentaId} 
                       onChange={e => setFormGasto({...formGasto, cuentaId: e.target.value})} 
-                      className="w-full mt-3 p-4 bg-white border border-blue-100 rounded-2xl text-[10px] font-black text-blue-600 outline-none uppercase tracking-widest"
+                      className="w-full p-2 bg-white border border-blue-100 rounded-xl text-[9px] font-black text-blue-600 outline-none uppercase tracking-widest"
                     >
                       <option value="" disabled>Seleccionar Cuenta...</option>
                       {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -576,9 +594,27 @@ const Gastos = () => {
                   )}
                 </div>
 
-                <div className="pt-6 flex gap-4 border-t border-agri-50">
-                   <button type="button" onClick={() => setShowModalGasto(false)} className="flex-1 px-4 py-5 border border-agri-100 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-agri-50 active:scale-95 transition-all text-agri-400">Cancelar</button>
-                   <button type="submit" className={`flex-1 px-4 py-5 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-xl ${activeCategory ? gastosConfig[activeCategory].color : 'bg-agri-600'}`}>Guardar</button>
+                 <div className="space-y-1">
+                   <label className="text-[9px] font-black text-agri-900/40 uppercase tracking-widest ml-2 block leading-none">Temporada / Ciclo</label>
+                   <div className="relative group">
+                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-agri-400 group-focus-within:text-agri-600 transition-colors pointer-events-none" />
+                     <select 
+                       required 
+                       value={formGasto.seasonId} 
+                       onChange={e => setFormGasto({...formGasto, seasonId: e.target.value})} 
+                       className="w-full bg-agri-50/50 border border-agri-100/50 rounded-2xl pl-10 pr-4 py-3 text-xs font-bold text-agri-900 focus:ring-4 focus:ring-agri-500/10 outline-none appearance-none cursor-pointer"
+                     >
+                       <option value="" disabled>Seleccionar Temporada...</option>
+                       {temporadas.map(t => (
+                         <option key={t.id} value={t.id}>{t.nombre}</option>
+                       ))}
+                     </select>
+                   </div>
+                 </div>
+
+                 <div className="pt-2 flex gap-3 border-t border-agri-50">
+                   <button type="button" onClick={() => setShowModalGasto(false)} className="flex-1 px-4 py-3 border border-agri-100 rounded-2xl font-black uppercase text-[9px] tracking-widest hover:bg-agri-50 active:scale-95 transition-all text-agri-400">Cancelar</button>
+                   <button type="submit" className={`flex-1 px-4 py-3 text-white rounded-2xl font-black uppercase text-[9px] tracking-widest active:scale-95 transition-all shadow-xl ${activeCategory ? gastosConfig[activeCategory].color : 'bg-agri-600'}`}>Guardar</button>
                 </div>
               </form>
             </div>

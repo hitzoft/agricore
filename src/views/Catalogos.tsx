@@ -1,20 +1,36 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
+import { useLocation } from 'react-router-dom';
 import { 
   HardHat, Tractor, Building2, Edit2, Power, 
   PowerOff, Plus, X, CreditCard, 
   ShoppingBag, ArrowLeft, Users, Briefcase,
-  ChevronRight
+  ChevronRight, Calendar, CheckCircle2
 } from 'lucide-react';
 
-type TabType = 'Empleados' | 'Cabos' | 'Huertas' | 'Proveedores' | 'Cuentas' | 'Clientes' | 'Productos';
+type TabType = 'Empleados' | 'Cabos' | 'Huertas' | 'Proveedores' | 'Cuentas' | 'Clientes' | 'Productos' | 'Temporadas';
 
 const Catalogos = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>('Empleados');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Auto-open Temporadas modal if coming from the MainLayout alert
+  React.useEffect(() => {
+    if (location.state?.openSeason) {
+      setActiveTab('Temporadas');
+      setView('list');
+      setShowModal(true);
+      setFormData({});
+      setEditingId(null);
+      
+      // Clean up state so it doesn't re-open on refresh if using browser navigation
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   
   const catalogConfig: Record<TabType, { label: string, icon: any, color: string, desc: string }> = {
     'Empleados': { label: 'Empleados', icon: Users, color: 'bg-blue-500', desc: 'Personal fijo y administrativo' },
@@ -23,7 +39,8 @@ const Catalogos = () => {
     'Proveedores': { label: 'Proveedores', icon: Building2, color: 'bg-slate-500', desc: 'Insumos, servicios y fletes' },
     'Cuentas': { label: 'Cuentas', icon: CreditCard, color: 'bg-purple-500', desc: 'Bancos, cajas y métodos de pago' },
     'Clientes': { label: 'Clientes', icon: Briefcase, color: 'bg-indigo-500', desc: 'Compradores y comercializadoras' },
-    'Productos': { label: 'Productos', icon: ShoppingBag, color: 'bg-rose-500', desc: 'Productos y Variedades' }
+    'Productos': { label: 'Productos', icon: ShoppingBag, color: 'bg-rose-500', desc: 'Productos y Variedades' },
+    'Temporadas': { label: 'Temporadas', icon: Calendar, color: 'bg-amber-600', desc: 'Ciclos de cosecha y periodos' }
   };
 
   const singularTab: Record<TabType, string> = {
@@ -33,7 +50,8 @@ const Catalogos = () => {
     'Proveedores': 'Provedor',
     'Cuentas': 'Cuenta',
     'Clientes': 'Cliente',
-    'Productos': 'Producto'
+    'Productos': 'Producto',
+    'Temporadas': 'Temporada'
   };
 
   const { 
@@ -41,7 +59,9 @@ const Catalogos = () => {
     toggleActivo, addEmpleado, updateEmpleado, addCabo, updateCabo,
     addHuerta, updateHuerta, addProveedor, updateProveedor,
     addCuentaBancaria, updateCuentaBancaria, clientes, addCliente, updateCliente,
-    productos, addProducto, updateProducto
+    productos, addProducto, updateProducto,
+    temporadas, addTemporada, updateTemporada, activeSeasonId, setActiveSeason,
+    clearAllData
   } = useStore(useShallow(state => ({
     empleados: state.empleados,
     cabos: state.cabos,
@@ -50,6 +70,8 @@ const Catalogos = () => {
     cuentasBancarias: state.cuentasBancarias,
     clientes: state.clientes,
     productos: state.productos,
+    temporadas: state.temporadas,
+    activeSeasonId: state.activeSeasonId,
     toggleActivo: state.toggleActivo,
     addEmpleado: state.addEmpleado,
     updateEmpleado: state.updateEmpleado,
@@ -64,12 +86,16 @@ const Catalogos = () => {
     addCliente: state.addCliente,
     updateCliente: state.updateCliente,
     addProducto: state.addProducto,
-    updateProducto: state.updateProducto
+    updateProducto: state.updateProducto,
+    addTemporada: state.addTemporada,
+    updateTemporada: state.updateTemporada,
+    setActiveSeason: state.setActiveSeason,
+    clearAllData: state.clearAllData
   })));
 
   const [formData, setFormData] = useState<any>({});
 
-  const handleToggle = (catalogMapName: 'empleados' | 'cabos' | 'huertas' | 'proveedores' | 'cuentasBancarias' | 'clientes' | 'productos', id: string, name: string) => {
+  const handleToggle = (catalogMapName: 'empleados' | 'cabos' | 'huertas' | 'proveedores' | 'cuentasBancarias' | 'clientes' | 'productos' | 'temporadas', id: string, name: string) => {
     if (window.confirm(`¿Cambiar el estado de ${name}?`)) {
       toggleActivo(catalogMapName, id);
     }
@@ -84,6 +110,7 @@ const Catalogos = () => {
       case 'Cuentas': return cuentasBancarias;
       case 'Clientes': return clientes;
       case 'Productos': return productos;
+      case 'Temporadas': return temporadas;
       default: return [];
     }
   };
@@ -112,6 +139,7 @@ const Catalogos = () => {
       else if (activeTab === 'Cuentas') updateCuentaBancaria(editingId, formData);
       else if (activeTab === 'Clientes') updateCliente(editingId, formData);
       else if (activeTab === 'Productos') updateProducto(editingId, formData);
+      else if (activeTab === 'Temporadas') updateTemporada(editingId, formData);
     } else {
       if (activeTab === 'Empleados') addEmpleado(formData);
       else if (activeTab === 'Cabos') addCabo(formData);
@@ -120,6 +148,7 @@ const Catalogos = () => {
       else if (activeTab === 'Cuentas') addCuentaBancaria(formData);
       else if (activeTab === 'Clientes') addCliente(formData);
       else if (activeTab === 'Productos') addProducto(formData);
+      else if (activeTab === 'Temporadas') addTemporada({ ...formData });
     }
     setShowModal(false);
   };
@@ -204,22 +233,32 @@ const Catalogos = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {items.map((item: any) => {
               const Icon = catalogConfig[activeTab].icon;
+              const isActive = item.id === activeSeasonId;
+
               return (
                 <div key={item.id} className={`bg-white rounded-[2rem] p-6 border transition-all duration-200 ${item.activo === false ? 'border-red-100 bg-gray-50 opacity-75' : 'border-agri-100/50 shadow-sm hover:shadow-md'} relative group`}>
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`p-3 rounded-2xl border ${item.activo === false ? 'bg-gray-200 text-gray-400 border-gray-300' : 'bg-agri-50 text-agri-600 border-agri-100 shadow-inner'}`}>
-                        <Icon className="w-6 h-6" />
+                        {activeTab === 'Temporadas' && isActive ? (
+                          <CheckCircle2 className="w-6 h-6 text-blue-600 animate-in zoom-in" />
+                        ) : (
+                          <Icon className="w-6 h-6" />
+                        )}
                       </div>
                       <div>
                         <h3 className={`font-bold text-lg leading-tight ${item.activo === false ? 'text-gray-600 line-through decoration-gray-400' : 'text-gray-900 italic'}`}>{item.nombre}</h3>
                         <div className="flex items-center gap-2 mt-0.5">
+                          {activeTab === 'Temporadas' && (
+                             <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-tighter ${isActive ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-gray-400 bg-gray-50 border-gray-100'}`}>
+                               {isActive ? 'Ciclo Activo' : 'Histórico'}
+                             </span>
+                          )}
                           {item.activo === false ? (
                              <span className="text-[9px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 uppercase">Inactivo</span>
-                          ) : (
-                             <span className="text-[9px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-lg border border-green-100 uppercase tracking-tighter">Activo</span>
-                          )}
-                          {item.syncStatus === 'pending' && <p className="text-[9px] text-yellow-600 font-bold ml-1 flex items-center gap-1 uppercase tracking-tighter"><span className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></span> Local</p>}
+                          ) : (activeTab !== 'Temporadas' && (
+                             <span className="text-[9px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-lg border border-green-100 uppercase tracking-tighter">Vigente</span>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -230,11 +269,12 @@ const Catalogos = () => {
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
+
                       <button 
                         onClick={() => {
                           const catalogMap: any = {
                             'Cuentas': 'cuentasBancarias', 'Clientes': 'clientes', 'Empleados': 'empleados',
-                            'Cabos': 'cabos', 'Huertas': 'huertas', 'Proveedores': 'proveedores', 'Productos': 'productos'
+                            'Cabos': 'cabos', 'Huertas': 'huertas', 'Proveedores': 'proveedores', 'Productos': 'productos', 'Temporadas': 'temporadas'
                           };
                           handleToggle(catalogMap[activeTab], item.id, item.nombre);
                         }}
@@ -246,6 +286,25 @@ const Catalogos = () => {
                   </div>
 
                   <div className="space-y-2.5 mt-4 text-sm font-medium">
+                    {activeTab === 'Temporadas' && (
+                      <>
+                        {item.descripcion && <p className="text-xs text-agri-400 italic mb-2 line-clamp-2 px-1">{item.descripcion}</p>}
+                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                          <span className="text-gray-400 text-[10px] uppercase font-bold tracking-tighter">Creada</span>
+                          <span className="text-gray-600 text-xs">{new Date(item.fechaCreacion || Date.now()).toLocaleDateString()}</span>
+                        </div>
+                        
+                        {!isActive && (
+                          <button 
+                            onClick={() => setActiveSeason(item.id)}
+                            className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-2xl transition-all active:scale-95 border border-blue-100 shadow-sm"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Establecer como activo</span>
+                          </button>
+                        )}
+                      </>
+                    )}
                     {activeTab === 'Empleados' && (
                       <>
                         <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">Puesto</span><span className="text-gray-800">{item.puesto}</span></div>
@@ -308,10 +367,20 @@ const Catalogos = () => {
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
               <div className="space-y-2">
                 <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 ml-1">
-                  {activeTab === 'Productos' ? 'Nombre' : 'Nombre Completo / Razón Social'}
+                  {activeTab === 'Productos' ? 'Nombre' : 
+                   activeTab === 'Temporadas' ? 'Nombre del Ciclo' : 
+                   (activeTab === 'Cabos' || activeTab === 'Huertas') ? 'Nombre' :
+                   'Nombre Completo / Razón Social'}
                 </label>
-                <input required type="text" value={formData.nombre || ''} onChange={e => setFormData({...formData, nombre: e.target.value})} className="w-full bg-agri-50/30 border border-agri-100/30 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 transition-all shadow-inner placeholder:opacity-30" placeholder="Nombre completo..." />
+                <input required type="text" value={formData.nombre || ''} onChange={e => setFormData({...formData, nombre: e.target.value})} className="w-full bg-agri-50/30 border border-agri-100/30 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 transition-all shadow-inner placeholder:opacity-30" placeholder={activeTab === 'Temporadas' ? 'Ej: Temporada 2024-2025' : "Nombre..."} />
               </div>
+
+              {activeTab === 'Temporadas' && (
+                <div className="space-y-2">
+                  <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 ml-1">Descripción / Notas</label>
+                  <textarea value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} className="w-full bg-agri-50/30 border border-agri-100/30 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-medium text-agri-600 transition-all shadow-inner h-24 resize-none" placeholder="Detalles del ciclo agrícola..." />
+                </div>
+              )}
               
               {activeTab === 'Empleados' && (
                 <>
@@ -355,6 +424,28 @@ const Catalogos = () => {
           </div>
         </div>
       )}
+      {/* Zona de Peligro - Borrado de Historial */}
+      <div className="mt-20 mb-10 border-t border-red-100 pt-10">
+        <div className="bg-red-50/50 rounded-3xl p-8 border border-red-100/50 max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-center md:text-left">
+            <h3 className="text-lg font-black text-red-900 uppercase tracking-tight">Zona de Peligro</h3>
+            <p className="text-xs font-bold text-red-600/60 max-w-md">
+              Esto eliminará todo el **historial de Ventas, Gastos, Nóminas y Temporadas** de forma permanente. 
+              Tus catálogos de empleados, clientes y proveedores no se verán afectados.
+            </p>
+          </div>
+          <button 
+            onClick={() => {
+              if (window.confirm("¿ESTÁS SEGURO? Esta acción es IRREVERSIBLE y borrará todo el historial operativo.")) {
+                clearAllData();
+              }
+            }}
+            className="px-8 py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-red-700 active:scale-95 transition-all shadow-xl shadow-red-200"
+          >
+            Borrar Todo el Historial
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

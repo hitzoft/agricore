@@ -2,7 +2,8 @@ import Dexie, { type Table } from 'dexie';
 import type { 
   Empleado, Cliente, Proveedor, Huerta, Cabo, 
   CuentaBancaria, FolioVenta, Gasto, 
-  NominaCuadrilla, RayaSemanal, PagoNominaSemanal, Producto
+  NominaCuadrilla, RayaSemanal, PagoNominaSemanal, Producto, Temporada,
+  BaseRecord
 } from '../store/useStore';
 
 export class AgricoreDB extends Dexie {
@@ -18,22 +19,24 @@ export class AgricoreDB extends Dexie {
   rayasSemanales!: Table<RayaSemanal>;
   pagosNominaSemanal!: Table<PagoNominaSemanal>;
   productos!: Table<Producto>;
+  temporadas!: Table<Temporada>;
 
   constructor() {
     super('AgricoreDB');
-    this.version(2).stores({
+    this.version(3).stores({
       empleados: 'id, nombre, puesto, activo, syncStatus',
       clientes: 'id, nombre, rfc, activo, syncStatus',
       proveedores: 'id, nombre, activo, syncStatus',
       huertas: 'id, nombre, activo, syncStatus',
       cabos: 'id, nombre, activo, syncStatus',
       cuentasBancarias: 'id, nombre, banco, syncStatus',
-      folios: 'id, folio, status, clienteId, fecha, syncStatus',
-      gastos: 'id, proveedor, fecha, status, syncStatus',
-      cuadrillas: 'id, cabo, huerta, semana, fecha, syncStatus',
-      rayasSemanales: 'id, empleadoId, semana, syncStatus',
-      pagosNominaSemanal: 'id, semana, syncStatus',
-      productos: 'id, nombre, activo, syncStatus'
+      folios: 'id, folio, status, clienteId, fecha, seasonId, syncStatus',
+      gastos: 'id, proveedor, fecha, status, seasonId, syncStatus',
+      cuadrillas: 'id, cabo, huerta, semana, fecha, seasonId, syncStatus',
+      rayasSemanales: 'id, empleadoId, semana, seasonId, syncStatus',
+      pagosNominaSemanal: 'id, semana, seasonId, syncStatus',
+      productos: 'id, nombre, activo, syncStatus',
+      temporadas: 'id, nombre, activa, syncStatus'
     });
   }
 }

@@ -3,7 +3,7 @@ import {
   X, Banknote, CreditCard, Calendar, 
   DollarSign,
   Wallet, TrendingUp, History,
-  FileText
+  Receipt, Search
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -21,6 +21,14 @@ const Cobranza = () => {
     fechaAbono: today, 
     nota: '' 
   });
+  
+  // Filtering states (matching Gastos implementation)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'period' | 'month' | 'range'>('period');
+  const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | 'thisMonth' | 'lastMonth'>('30d');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7));
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
 
   // Consolidated Store access
   const { 
@@ -28,26 +36,73 @@ const Cobranza = () => {
     setVentaMontoTotal, 
     addAbonoVenta,
     cuentasRaw,
-    addToast
+    addToast,
+    temporadas,
+    activeSeasonId
   } = useStore(useShallow(state => ({
     folios: state.folios,
     setVentaMontoTotal: state.setVentaMontoTotal,
     addAbonoVenta: state.addAbonoVenta,
     cuentasRaw: state.cuentasBancarias,
-    addToast: state.addToast
+    addToast: state.addToast,
+    temporadas: state.temporadas,
+    activeSeasonId: state.activeSeasonId
   })));
 
   const cuentas = useMemo(() => cuentasRaw.filter(c => c.activo !== false), [cuentasRaw]);
 
+  // Combined Filtering Logic
+  const filteredFolios = useMemo(() => {
+    return folios.filter(f => {
+      // Season filter
+      if (activeSeasonId && f.seasonId !== activeSeasonId) return false;
+
+      // search filter (folio, destination)
+      const matchesSearch = f.folio.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          f.destino.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (!matchesSearch) return false;
+
+      // Date filter (based on sale date - f.fecha)
+      const fDate = f.fecha; 
+      if (!fDate) return true;
+
+      if (filterType === 'period') {
+        const now = new Date();
+        if (selectedPeriod === '7d') {
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(now.getDate() - 7);
+          return fDate >= sevenDaysAgo.toISOString().substring(0, 10);
+        } else if (selectedPeriod === '30d') {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(now.getDate() - 30);
+          return fDate >= thirtyDaysAgo.toISOString().substring(0, 10);
+        } else if (selectedPeriod === 'thisMonth') {
+          return fDate.substring(0, 7) === now.toISOString().substring(0, 7);
+        } else if (selectedPeriod === 'lastMonth') {
+          const lastMonth = new Date();
+          lastMonth.setMonth(now.getMonth() - 1);
+          return fDate.substring(0, 7) === lastMonth.toISOString().substring(0, 7);
+        }
+      } else if (filterType === 'month') {
+        return fDate.substring(0, 7) === selectedMonth;
+      } else if (filterType === 'range') {
+        if (!dateStart || !dateEnd) return true;
+        return fDate >= dateStart && fDate <= dateEnd;
+      }
+      return true;
+    }).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  }, [folios, searchTerm, filterType, selectedPeriod, selectedMonth, dateStart, dateEnd, activeSeasonId]);
+
   // Robust calculation
   const calcularPagado = (abonos?: any[]) => (abonos || []).reduce((acc, curr) => acc + curr.monto, 0);
   
-  const saldoGlobal = folios.reduce((acc, f) => {
+  const saldoGlobal = filteredFolios.reduce((acc, f) => {
     if (f.montoTotal > 0) return acc + (f.montoTotal - calcularPagado(f.abonos));
     return acc;
   }, 0);
 
-  const abonosGlobales = folios.reduce((acc, f) => acc + calcularPagado(f.abonos), 0);
+  const abonosGlobales = filteredFolios.reduce((acc, f) => acc + calcularPagado(f.abonos), 0);
 
   const getStatusInfo = (montoTotal: number, cobrado: number) => {
     const saldo = montoTotal > 0 ? montoTotal - cobrado : 0;
@@ -115,8 +170,8 @@ const Cobranza = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300 pb-20">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div className="space-y-2">
           <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">Cobranza</h1>
           <p className="text-agri-400 text-sm font-medium max-w-md leading-relaxed italic">Gestión financiera y seguimiento de ventas y abonos del ciclo actual.</p>
@@ -125,28 +180,146 @@ const Cobranza = () => {
       
       {viewMode === 'list' ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-orange-100 flex items-center justify-between group hover:border-orange-200 transition-all">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-orange-100 flex items-center justify-between group hover:border-orange-200 transition-all">
               <div className="flex items-center gap-5">
-                <div className="bg-orange-50 text-orange-600 p-4 rounded-2xl group-hover:scale-110 transition-transform"><Wallet className="w-8 h-8" /></div>
+                <div className="bg-orange-50 text-orange-600 p-5 rounded-3xl group-hover:scale-110 transition-transform shadow-sm"><Wallet className="w-8 h-8" /></div>
                 <div>
-                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Saldo Pendiente Global</p>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Saldo Pendiente (Filtro)</p>
                   <h3 className="text-3xl font-display text-gray-800 tracking-tight">${saldoGlobal.toLocaleString()}</h3>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-agri-100 flex items-center justify-between group hover:border-agri-200 transition-all">
+            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-agri-100 flex items-center justify-between group hover:border-agri-200 transition-all">
               <div className="flex items-center gap-5">
-                <div className="bg-agri-50 text-agri-600 p-4 rounded-2xl group-hover:scale-110 transition-transform"><TrendingUp className="w-8 h-8" /></div>
+                <div className="bg-agri-50 text-agri-600 p-5 rounded-3xl group-hover:scale-110 transition-transform shadow-sm"><TrendingUp className="w-8 h-8" /></div>
                 <div>
-                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Histórico Cobrado</p>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Histórico Cobrado (Filtro)</p>
                   <h3 className="text-3xl font-display text-gray-900 tracking-tight">${abonosGlobales.toLocaleString()}</h3>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          {/* FILTERS & SEARCH (Matching Gastos style) */}
+          <div className="bg-white p-3 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col xl:flex-row items-stretch xl:items-center gap-4 mb-8">
+             <div className="flex bg-gray-50 rounded-2xl p-1 shrink-0">
+               {[
+                 { id: 'period', label: 'Periodo' },
+                 { id: 'month', label: 'Mes' },
+                 { id: 'range', label: 'Rango' }
+               ].map(t => (
+                 <button 
+                   key={t.id}
+                   onClick={() => setFilterType(t.id as any)}
+                   className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${filterType === t.id ? 'bg-white text-agri-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                 >
+                   {t.label}
+                 </button>
+               ))}
+             </div>
+             <div className="h-8 w-px bg-gray-100 hidden xl:block" />
+             <div className="flex-1 min-w-0">
+               {filterType === 'period' && (
+                 <div className="flex gap-1 overflow-x-auto no-scrollbar">
+                   {[
+                     { id: '7d', label: '7 Días' },
+                     { id: '30d', label: '30 Días' },
+                     { id: 'thisMonth', label: 'Este Mes' },
+                     { id: 'lastMonth', label: 'Mes Pasado' }
+                   ].map(p => (
+                     <button
+                       key={p.id}
+                       onClick={() => setSelectedPeriod(p.id as any)}
+                       className={`px-6 py-2.5 rounded-xl text-[10px] font-black whitespace-nowrap transition-all ${selectedPeriod === p.id ? 'bg-agri-50 text-agri-700' : 'text-gray-400 hover:text-gray-600'}`}
+                     >
+                       {p.label}
+                     </button>
+                   ))}
+                 </div>
+               )}
+               {filterType === 'month' && (
+                 <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="px-6 py-2.5 bg-gray-50 rounded-xl text-xs font-black text-gray-700 outline-none w-full xl:w-48" />
+               )}
+               {filterType === 'range' && (
+                 <div className="flex items-center gap-3">
+                   <input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} className="px-4 py-2 bg-gray-50 rounded-xl text-xs font-black text-gray-700" />
+                   <span className="text-gray-300">—</span>
+                   <input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} className="px-4 py-2 bg-gray-50 rounded-xl text-xs font-black text-gray-700" />
+                 </div>
+               )}
+             </div>
+             <div className="h-8 w-px bg-gray-100 hidden xl:block" />
+             <div className="relative group xl:w-80">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-agri-600" />
+                <input placeholder="Buscar por folio o destino..." className="pl-12 pr-6 py-3.5 bg-gray-50 rounded-2xl text-sm font-bold text-gray-700 outline-none w-full" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+             </div>
+          </div>
+
+          {/* MOBILE CARDS (Hidden on MD+) */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+              {filteredFolios.map(folio => {
+                const cobrado = calcularPagado(folio.abonos);
+                const saldo = folio.montoTotal > 0 ? folio.montoTotal - cobrado : 0;
+                const estaLiquidado = folio.montoTotal > 0 && saldo === 0;
+                const info = getStatusInfo(folio.montoTotal, cobrado);
+
+                return (
+                  <div 
+                    key={folio.id}
+                    onClick={() => handleSelectVenta(folio.id)}
+                    className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm active:scale-95 transition-all overflow-hidden relative"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-3 rounded-2xl border ${estaLiquidado ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>
+                          <Receipt className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 uppercase tracking-tight leading-none mb-1 text-sm">Folio {folio.folio}</p>
+                          <div className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-lg inline-block">
+                             <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                                {temporadas.find(t => t.id === folio.seasonId)?.nombre || 'Ciclo Indefinido'}
+                             </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`${info.color} font-black px-2.5 py-1.5 rounded-xl text-[8px] uppercase tracking-widest border shadow-sm`}>
+                        {info.label}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4 py-4 border-y border-gray-50/50">
+                      <div>
+                        <p className="text-gray-400 text-[8px] font-black uppercase tracking-widest mb-1">Destino</p>
+                        <p className="text-xs font-bold text-slate-700 truncate">{folio.destino}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-gray-400 text-[8px] font-black uppercase tracking-widest mb-1">Monto Total</p>
+                        <p className="text-sm font-black text-slate-900 italic">
+                          {folio.montoTotal === 0 ? 'A DEFINIR' : `$${folio.montoTotal.toLocaleString()}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-400 text-[8px] font-black uppercase tracking-widest mb-1 font-sans">Saldo Pendiente</p>
+                        <p className={`text-2xl font-black italic tracking-tighter ${estaLiquidado ? 'text-green-600' : 'text-orange-600'}`}>
+                          ${saldo.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="bg-agri-50 text-agri-600 p-3 rounded-2xl">
+                        <History className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+           </div>
+
+          {/* DESKTOP TABLE (Hidden on Mobile) */}
+          <div className="hidden md:block bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-gray-50/50 text-gray-400 font-bold text-[10px] uppercase tracking-widest border-b border-gray-100">
@@ -159,7 +332,7 @@ const Cobranza = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {folios.map(folio => {
+                  {filteredFolios.map(folio => {
                     const cobrado = calcularPagado(folio.abonos);
                     const saldo = folio.montoTotal > 0 ? folio.montoTotal - cobrado : 0;
                     const estaLiquidado = folio.montoTotal > 0 && saldo === 0;
@@ -173,11 +346,16 @@ const Cobranza = () => {
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-4">
                             <div className={`p-3 rounded-2xl border transition-colors ${estaLiquidado ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>
-                              <FileText className="w-5 h-5" />
+                              <Receipt className="w-5 h-5" />
                             </div>
                             <div>
                                <p className="font-bold text-slate-900 uppercase tracking-tight">Folio {folio.folio}</p>
                                <p className="text-agri-400 text-[10px] font-bold uppercase tracking-widest">{folio.destino} • {folio.peso}</p>
+                               <div className="mt-1 px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-lg inline-block">
+                                   <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                                      {temporadas.find(t => t.id === folio.seasonId)?.nombre || 'Ciclo Indefinido'}
+                                   </span>
+                                </div>
                             </div>
                           </div>
                         </td>
@@ -231,7 +409,7 @@ const Cobranza = () => {
                       onClick={() => handleOpenModal('liquidar')}
                       className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all active:scale-95"
                     >
-                      <FileText className="w-4 h-4" /> Definir Precio
+                      <Receipt className="w-4 h-4" /> Definir Precio
                     </button>
                   ) : (
                     <button 
@@ -246,25 +424,32 @@ const Cobranza = () => {
            </div>
 
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              <div className="lg:col-span-2 bg-white rounded-[32px] shadow-sm border border-gray-100 p-8 flex flex-col justify-between">
-                  <div className="flex items-start justify-between mb-10">
+              <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 flex flex-col justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-10">
                       <div className="flex items-center gap-6">
                           <div className="bg-agri-600 text-white p-5 rounded-[24px] shadow-lg shadow-agri-600/20">
-                              <FileText className="w-8 h-8" />
+                              <Receipt className="w-8 h-8" />
                           </div>
                           <div>
-                              <h2 className="text-3xl font-display text-slate-800 mb-1">Folio {selectedVenta.folio}</h2>
-                              <p className="text-agri-400 font-bold text-xs uppercase tracking-[0.2em]">{selectedVenta.destino} • {selectedVenta.peso}</p>
+                              <h2 className="text-3xl font-display text-slate-800 mb-1 leading-none">Folio {selectedVenta.folio}</h2>
+                              <p className="text-agri-400 font-bold text-xs uppercase tracking-[0.2em] mb-2">{selectedVenta.destino} • {selectedVenta.peso}</p>
+                              <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-xl inline-block">
+                                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                                     {temporadas.find(t => t.id === selectedVenta.seasonId)?.nombre || 'Ciclo Indefinido'}
+                                  </span>
+                               </div>
                           </div>
                       </div>
-                      {(() => {
-                        const info = getStatusInfo(selectedVenta.montoTotal, calcularPagado(selectedVenta.abonos));
-                        return (
-                          <span className={`${info.color} px-5 py-2 rounded-2xl text-[10px] font-black border uppercase tracking-[0.15em] shadow-sm`}>
-                            {info.label}
-                          </span>
-                        );
-                      })()}
+                      <div className="flex">
+                        {(() => {
+                          const info = getStatusInfo(selectedVenta.montoTotal, calcularPagado(selectedVenta.abonos));
+                          return (
+                            <span className={`${info.color} px-5 py-2 rounded-2xl text-[10px] font-black border uppercase tracking-[0.15em] shadow-sm`}>
+                              {info.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
@@ -278,7 +463,7 @@ const Cobranza = () => {
                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Cobrado</p>
                           <p className="text-2xl font-black text-agri-600 italic tracking-tighter leading-none">${calcularPagado(selectedVenta.abonos).toLocaleString()}</p>
                       </div>
-                      <div>
+                      <div className="col-span-2 sm:col-span-1">
                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Saldo</p>
                           <p className="text-2xl font-black text-orange-600 italic tracking-tighter leading-none">
                              {selectedVenta.montoTotal > 0 ? `$${(selectedVenta.montoTotal - calcularPagado(selectedVenta.abonos)).toLocaleString()}` : '---'}
@@ -287,16 +472,18 @@ const Cobranza = () => {
                   </div>
               </div>
 
-              <div className={`${selectedVenta.montoTotal > 0 ? 'bg-slate-900 shadow-slate-900/20' : 'bg-blue-900 shadow-blue-900/20'} rounded-[32px] p-8 text-white shadow-xl flex flex-col justify-between overflow-hidden relative group transition-all duration-500`}>
+              <div className={`${selectedVenta.montoTotal > 0 ? 'bg-slate-900 shadow-slate-900/20' : 'bg-blue-900 shadow-blue-900/20'} rounded-[2.5rem] p-8 text-white shadow-xl flex flex-col justify-between overflow-hidden relative group transition-all duration-500`}>
                   <div className="relative z-10">
-                      <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border shadow-sm transition-all ${getStatusInfo(selectedVenta.montoTotal, calcularPagado(selectedVenta.abonos)).color}`}>
-                        {getStatusInfo(selectedVenta.montoTotal, calcularPagado(selectedVenta.abonos)).label}
-                     </span>
-                      <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mb-4 mt-4">Estado de Cuenta</p>
+                      <div className="flex mb-4">
+                        <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border shadow-sm transition-all ${getStatusInfo(selectedVenta.montoTotal, calcularPagado(selectedVenta.abonos)).color}`}>
+                          {getStatusInfo(selectedVenta.montoTotal, calcularPagado(selectedVenta.abonos)).label}
+                        </span>
+                      </div>
+                      <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mb-4 mt-4 font-sans">Estado de Cuenta</p>
                       {selectedVenta.montoTotal > 0 ? (
                         <>
                           <div className="flex items-baseline gap-2 mb-2">
-                            <h3 className="text-5xl font-display tracking-tight">
+                            <h3 className="text-5xl font-display tracking-tight leading-none">
                                {selectedVenta.montoTotal > 0 
                                  ? Math.round((calcularPagado(selectedVenta.abonos) / selectedVenta.montoTotal) * 100) 
                                  : 0}
@@ -328,7 +515,7 @@ const Cobranza = () => {
                </div>
            </div>
 
-           <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
+           <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden mb-8">
               <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <History className="w-5 h-5 text-gray-400" />

@@ -1,20 +1,96 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
   Wallet, 
   Layers,
   FileWarning, 
-  Clock,
+  Clock, 
   Activity,
   BarChart3,
-  Search
+  Search,
+  X,
+  ChevronRight
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
+const DrillDownModal = ({ isOpen, onClose, title, items }: any) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-2xl max-h-[85vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white/20">
+        <div className="p-10 border-b border-gray-50 flex items-center justify-between bg-agri-50/30">
+          <div>
+            <h3 className="text-3xl font-display text-agri-900 italic tracking-tight">Detalle de <span className="not-italic font-bold">{title}</span></h3>
+            <p className="text-[10px] font-black text-agri-400 uppercase tracking-widest mt-1.5">{items.length} Registros encontrados</p>
+          </div>
+          <button onClick={onClose} className="p-4 bg-white rounded-2xl text-gray-400 hover:text-agri-600 transition-all shadow-sm hover:rotate-90">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-10 space-y-4 pt-6">
+          {items.length === 0 ? (
+            <div className="py-24 text-center">
+               <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <BarChart3 className="w-8 h-8 text-gray-200" />
+               </div>
+               <p className="text-gray-400 text-sm font-medium uppercase tracking-widest italic">No hay registros para mostrar</p>
+            </div>
+          ) : (
+            items.map((item: any, idx: number) => (
+              <div key={idx} className="p-6 bg-white border border-gray-100 rounded-3xl flex items-center justify-between group hover:border-agri-200 hover:shadow-xl hover:shadow-agri-900/5 transition-all">
+                <div className="flex items-center gap-5">
+                  <div className={`p-4 rounded-2xl transition-transform group-hover:scale-110 ${
+                    item.statusColor?.includes('red') ? 'bg-red-50 text-red-600' : 
+                    item.statusColor?.includes('orange') ? 'bg-orange-50 text-orange-600' : 
+                    'bg-agri-50 text-agri-600'
+                  }`}>
+                    {title.includes('Cartera') ? <Wallet className="w-5 h-5" /> : 
+                     title.includes('Factura') ? <FileWarning className="w-5 h-5" /> : 
+                     <Activity className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-agri-900 uppercase tracking-tight line-clamp-1">{item.title}</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{item.subtitle}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-display text-agri-900">${(item.amount || 0).toLocaleString()}</p>
+                  <p className={`text-[8px] font-black uppercase tracking-[0.2em] mt-1 ${item.statusColor || 'text-agri-400'}`}>{item.status}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        
+        <div className="p-8 bg-gray-50 border-t border-gray-100 flex justify-end">
+           <button 
+             onClick={onClose}
+             className="px-8 py-3 bg-agri-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95"
+           >
+             Cerrar Ventana
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Reportes = () => {
   const state = useStore();
-  const { folios, gastos, cuadrillas, rayasSemanales } = state;
+  const { activeSeasonId, temporadas } = state;
+
+  const currentSeason = useMemo(() => 
+    temporadas.find(t => t.id === activeSeasonId)
+  , [temporadas, activeSeasonId]);
+
+  const folios = useMemo(() => state.folios.filter(f => f.seasonId === activeSeasonId), [state.folios, activeSeasonId]);
+  const gastos = useMemo(() => state.gastos.filter(g => g.seasonId === activeSeasonId), [state.gastos, activeSeasonId]);
+  const cuadrillas = useMemo(() => state.cuadrillas.filter(c => c.seasonId === activeSeasonId), [state.cuadrillas, activeSeasonId]);
+  const rayasSemanales = useMemo(() => state.rayasSemanales.filter(r => r.seasonId === activeSeasonId), [state.rayasSemanales, activeSeasonId]);
 
   const totalVentas = useMemo(() => 
     folios.reduce((acc: number, f: any) => acc + (f.montoTotal || 0), 0)
@@ -49,10 +125,55 @@ const Reportes = () => {
   const totalEgresos = totalGastosCompras + totalGastosNomina;
   const margenOperativo = totalVentas - totalEgresos;
 
-  const gastosSinComprobante = useMemo(() => gastos.filter((g: any) => !g.tieneComprobante).length, [gastos]);
+  const [drilling, setDrilling] = useState<{ open: boolean; title: string; items: any[] }>({
+    open: false,
+    title: '',
+    items: []
+  });
+
+  const gastosSinComprobanteItems = useMemo(() => 
+    gastos.filter((g: any) => !g.tieneComprobante)
+      .map(g => ({
+        title: g.concepto || 'Compra de Insumos',
+        subtitle: `${g.categoria} • ${g.proveedor || 'Sin Proveedor'}`,
+        amount: g.monto,
+        status: 'Sin Factura',
+        statusColor: 'text-orange-500'
+      }))
+  , [gastos]);
+
+  const carteraPendienteItems = useMemo(() => 
+    folios.filter(f => (f.montoTotal || 0) > (f.abonos?.reduce((sum: number, a: any) => sum + a.monto, 0) || 0))
+      .map(f => {
+        const pagado = f.abonos?.reduce((sum: number, a: any) => sum + a.monto, 0) || 0;
+        return {
+          title: `Folio: ${f.folio}`,
+          subtitle: f.destino,
+          amount: f.montoTotal - pagado,
+          status: 'Adeudo Cliente',
+          statusColor: 'text-red-500'
+        };
+      })
+  , [folios]);
+
+  const proveedoresPorPagarItems = useMemo(() => 
+    gastos.filter(g => g.metodo === 'Crédito')
+      .map(g => {
+        const pagado = g.abonos?.reduce((acc: any, a: any) => acc + (a.monto || 0), 0) || 0;
+        const pendiente = (g.monto || 0) - pagado;
+        if (pendiente <= 0) return null;
+        return {
+          title: g.concepto || 'Crédito Proveedor',
+          subtitle: g.proveedor,
+          amount: pendiente,
+          status: 'Por Liquidar',
+          statusColor: 'text-agri-500'
+        };
+      }).filter((i): i is any => i !== null)
+  , [gastos]);
 
   return (
-    <div className="space-y-10 max-w-7xl mx-auto animate-in fade-in duration-500">
+    <div className="space-y-10 max-w-7xl mx-auto animate-in fade-in duration-500 pb-20">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -60,6 +181,10 @@ const Reportes = () => {
           <div className="flex items-center gap-3 text-agri-600 mb-2">
              <BarChart3 className="w-5 h-5" />
              <span className="text-[10px] font-black uppercase tracking-[0.3em]">Análisis Gerencial</span>
+             <div className="h-4 w-px bg-agri-200 mx-1" />
+             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-agri-400">
+               {currentSeason?.nombre || 'General'}
+             </span>
           </div>
           <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">Reportes</h1>
           <p className="text-agri-400 text-sm font-medium max-w-lg leading-relaxed italic">Monitoreo integral del rendimiento operativo y salud financiera del ciclo actual.</p>
@@ -113,7 +238,7 @@ const Reportes = () => {
             <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Costo Operativo</p>
           </div>
           <h3 className="text-3xl font-display text-gray-800 tracking-tight">${totalEgresos.toLocaleString()}</h3>
-          <p className="text-[10px] text-gray-400 mt-2 font-medium">Insumos + Nóminas</p>
+          <p className="text-[10px] text-gray-400 mt-2 font-medium">Gastos + Nóminas</p>
         </div>
 
         <div className={`bg-white p-8 rounded-3xl shadow-sm border group transition-all ${margenOperativo >= 0 ? 'border-agri-100/50 hover:border-agri-200' : 'border-red-100 hover:border-red-200'}`}>
@@ -134,42 +259,66 @@ const Reportes = () => {
         </div>
       </div>
 
-      {/* Secondary Metrics */}
+      {/* Secondary Metrics - CLICKABLE CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
+        <button 
+          onClick={() => setDrilling({ open: true, title: 'Cartera Pendiente', items: carteraPendienteItems })}
+          className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-xl hover:border-orange-200 transition-all text-left group"
+        >
+          <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
             <FileWarning className="w-6 h-6" />
           </div>
-          <div>
-            <p className="text-gray-500 text-sm font-medium">Cartera Pendiente</p>
+          <div className="flex-1">
+            <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Cartera Pendiente</p>
             <p className="text-2xl font-bold text-orange-600">${saldoPendiente.toLocaleString()}</p>
+            <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+               <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest">Ver detalle</span>
+               <ChevronRight className="w-3 h-3 text-orange-400 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
-        </div>
+        </button>
         
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-yellow-50 text-yellow-600 rounded-xl">
+        <button 
+          onClick={() => setDrilling({ open: true, title: 'Gastos Pend. Factura', items: gastosSinComprobanteItems })}
+          className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-xl hover:border-yellow-200 transition-all text-left group"
+        >
+          <div className="p-4 bg-yellow-50 text-yellow-600 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
             <Clock className="w-6 h-6" />
           </div>
-          <div>
-            <p className="text-gray-500 text-sm font-medium">Gastos Pend. Factura</p>
-            <p className="text-2xl font-bold text-gray-800">{gastosSinComprobante}</p>
+          <div className="flex-1">
+            <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Gastos Pend. Factura</p>
+            <p className="text-2xl font-bold text-gray-800">{gastosSinComprobanteItems.length}</p>
+            <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+               <span className="text-[9px] font-black text-yellow-600 uppercase tracking-widest">Ver detalle</span>
+               <ChevronRight className="w-3 h-3 text-yellow-600 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-agri-50 text-agri-600 rounded-xl">
+        <button 
+          onClick={() => setDrilling({ open: true, title: 'Proveedores x Pagar', items: proveedoresPorPagarItems })}
+          className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-xl hover:border-agri-200 transition-all text-left group"
+        >
+          <div className="p-4 bg-agri-50 text-agri-600 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
             <Activity className="w-6 h-6" />
           </div>
-          <div>
-            <p className="text-gray-500 text-sm font-medium">Proveedores x Pagar</p>
-            <p className="text-2xl font-bold text-agri-700">${gastos.reduce((s: any, g: any) => {
-               if (g.metodo !== 'Crédito') return s;
-               const pagado = g.abonos?.reduce((acc: any, a: any) => acc + (a.monto || 0), 0) || 0;
-               return s + ((g.monto || 0) - pagado);
-            }, 0).toLocaleString()}</p>
+          <div className="flex-1">
+            <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Proveedores x Pagar</p>
+            <p className="text-2xl font-bold text-agri-700">${proveedoresPorPagarItems.reduce((acc, i) => acc + i.amount, 0).toLocaleString()}</p>
+            <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+               <span className="text-[9px] font-black text-agri-500 uppercase tracking-widest">Ver detalle</span>
+               <ChevronRight className="w-3 h-3 text-agri-500 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
-        </div>
+        </button>
       </div>
+
+      <DrillDownModal 
+        isOpen={drilling.open} 
+        onClose={() => setDrilling({ ...drilling, open: false })}
+        title={drilling.title}
+        items={drilling.items}
+      />
 
       {/* Distribution Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

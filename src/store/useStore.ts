@@ -75,6 +75,14 @@ export interface StatusCambio {
   nota?: string;
 }
 
+export interface Temporada extends BaseRecord {
+  nombre: string;
+  descripcion?: string;
+  activa: boolean;
+  fechaInicio?: string;
+  fechaFin?: string;
+}
+
 export interface FolioVenta extends BaseRecord {
   folio: string;
   placas: string;
@@ -90,6 +98,7 @@ export interface FolioVenta extends BaseRecord {
   esExportacion: boolean;
   abonos: Abono[];
   statusHistory: StatusCambio[];
+  seasonId: string;
 }
 
 export interface Gasto extends BaseRecord {
@@ -105,6 +114,7 @@ export interface Gasto extends BaseRecord {
   status: 'Pendiente' | 'Parcial' | 'Pagado';
   cuentaId?: string;
   categoria: GastoCategoria;
+  seasonId: string;
 }
 
 export interface NominaCuadrilla extends BaseRecord {
@@ -120,6 +130,7 @@ export interface NominaCuadrilla extends BaseRecord {
   semana: string;
   pagos: PagoDetalle[];
   status: 'Parcial' | 'Pagada';
+  seasonId: string;
 }
 
 export interface DiaAsistencia {
@@ -136,6 +147,7 @@ export interface RayaSemanal extends BaseRecord {
   semana: string;
   asistencia: Record<DiaSemana, DiaAsistencia>;
   cerrada: boolean;
+  seasonId: string;
 }
 
 export interface PagoNominaSemanal extends BaseRecord {
@@ -143,6 +155,7 @@ export interface PagoNominaSemanal extends BaseRecord {
   pagos: PagoDetalle[];
   totalPagado: number;
   status: 'Parcial' | 'Pagada';
+  seasonId: string;
 }
 
 export interface Alerta {
@@ -173,8 +186,13 @@ interface AppState {
   cuentasBancarias: CuentaBancaria[];
   clientes: Cliente[];
   productos: Producto[];
+  temporadas: Temporada[];
+  activeSeasonId: string;
   
   // Acciones
+  setActiveSeason: (id: string) => void;
+  addTemporada: (temp: Partial<Temporada>) => void;
+  updateTemporada: (id: string, data: Partial<Temporada>) => void;
   addCliente: (cliente: Omit<Cliente, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => string;
   updateCliente: (id: string, data: Partial<Cliente>) => void;
   addFolio: (folio: Omit<FolioVenta, 'id' | 'syncStatus' | 'updatedAt' | 'activo' | 'montoTotal' | 'abonos' | 'statusHistory' | 'folio' | 'esExportacion' | 'fecha'> & { fecha?: string }) => string;
@@ -198,7 +216,7 @@ interface AppState {
   updateCuentaBancaria: (id: string, data: Partial<CuentaBancaria>) => void;
   addProducto: (producto: Omit<Producto, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => string;
   updateProducto: (id: string, data: Partial<Producto>) => void;
-  toggleActivo: (catalog: 'proveedores' | 'huertas' | 'cabos' | 'empleados' | 'cuentasBancarias' | 'clientes' | 'productos', id: string) => void;
+  toggleActivo: (catalog: 'proveedores' | 'huertas' | 'cabos' | 'empleados' | 'cuentasBancarias' | 'clientes' | 'productos' | 'temporadas', id: string) => void;
 
   addCuadrilla: (cuadrilla: Omit<NominaCuadrilla, 'id' | 'syncStatus' | 'updatedAt' | 'activo' | 'pagos' | 'status'>) => void;
   actualizarCuadrilla: (id: string, data: Partial<NominaCuadrilla>) => void;
@@ -219,6 +237,7 @@ interface AppState {
   addAlert: (alerta: Omit<Alerta, 'id'>) => void;
   addToast: (message: string, type?: Toast['type']) => void;
   removeToast: (id: string) => void;
+  clearAllData: () => Promise<void>;
 }
 
 export const generateId = () => crypto.randomUUID();
@@ -238,6 +257,36 @@ export const useStore = create<AppState>((set) => ({
   cuentasBancarias: [],
   clientes: [],
   productos: [],
+  temporadas: [],
+  activeSeasonId: '',
+
+  setActiveSeason: (id) => set({ activeSeasonId: id }),
+
+  addTemporada: (tempData) => set((state) => {
+    const newRecord: Temporada = { 
+      id: generateId(), 
+      nombre: tempData.nombre || 'Sin Nombre',
+      descripcion: tempData.descripcion || '',
+      activa: true,
+      syncStatus: 'pending', 
+      updatedAt: new Date().toISOString()
+    };
+    localDb.temporadas.put(newRecord);
+    pushToCloud('temporadas', newRecord);
+    return { 
+      temporadas: [...state.temporadas, newRecord],
+      activeSeasonId: newRecord.id 
+    };
+  }),
+
+  updateTemporada: (id, data) => set((state) => {
+    const item = state.temporadas.find(t => t.id === id);
+    if (!item) return state;
+    const updatedRecord: Temporada = { ...item, ...data, syncStatus: 'pending' as const, updatedAt: new Date().toISOString() };
+    localDb.temporadas.put(updatedRecord);
+    pushToCloud('temporadas', updatedRecord);
+    return { temporadas: state.temporadas.map(t => t.id === id ? updatedRecord : t) };
+  }),
 
   toggleActivo: (catalog, id) => set((state) => {
     // @ts-ignore
@@ -397,16 +446,17 @@ export const useStore = create<AppState>((set) => ({
     }
 
     activos.forEach(emp => {
-      const existe = nuevasRayas.find(r => r.empleadoId === emp.id && r.semana === semana);
+      const existe = nuevasRayas.find(r => r.empleadoId === emp.id && r.semana === semana && r.seasonId === state.activeSeasonId);
       if(!existe) {
         const newRaya: RayaSemanal = {
-          id: `raya_${semana}_${emp.id}`.replace(/\s+/g, '_'), 
+          id: `raya_${semana}_${emp.id}_${state.activeSeasonId}`.replace(/\s+/g, '_'), 
           empleadoId: emp.id, 
           empleadoNombre: emp.nombre, 
           puesto: emp.puesto,
           sueldoDiario: emp.sueldoDiario || 0, 
           semana, 
           cerrada: false,
+          seasonId: state.activeSeasonId,
           asistencia: {
             'L': { asistio: false, horasExtra: 0, bonoExtra: 0 }, 'M': { asistio: false, horasExtra: 0, bonoExtra: 0 }, 'X': { asistio: false, horasExtra: 0, bonoExtra: 0 },
             'J': { asistio: false, horasExtra: 0, bonoExtra: 0 }, 'V': { asistio: false, horasExtra: 0, bonoExtra: 0 }, 'S': { asistio: false, horasExtra: 0, bonoExtra: 0 }, 'D': { asistio: false, horasExtra: 0, bonoExtra: 0 },
@@ -558,6 +608,7 @@ export const useStore = create<AppState>((set) => ({
           status: folioData.status,
           nota: 'Registro inicial de salida'
         }],
+        seasonId: state.activeSeasonId,
         id: newId, 
         syncStatus: 'pending' as const, 
         updatedAt: now.toISOString() 
@@ -567,7 +618,16 @@ export const useStore = create<AppState>((set) => ({
       pushToCloud('folios', newFolioRecord);
 
       return { 
-        folios: [newFolioRecord, ...state.folios]
+        folios: [newFolioRecord, ...state.folios],
+        alertas: [
+          { 
+            id: generateId(), 
+            type: 'info', 
+            text: `Nueva Venta: ${newFolioNumber} (${client?.nombre || 'Sin Cliente'})`, 
+            time: 'Ahora' 
+          }, 
+          ...state.alertas
+        ]
       };
     });
     return newId;
@@ -578,13 +638,25 @@ export const useStore = create<AppState>((set) => ({
       ...cuadrillaData, 
       pagos: [], 
       status: 'Parcial', 
+      seasonId: state.activeSeasonId,
       id: generateId(), 
       syncStatus: 'pending' as const, 
       updatedAt: new Date().toISOString() 
     };
     localDb.cuadrillas.put(newRecord);
     pushToCloud('cuadrillas', newRecord);
-    return { cuadrillas: [newRecord, ...state.cuadrillas] };
+    return { 
+      cuadrillas: [newRecord, ...state.cuadrillas],
+      alertas: [
+        { 
+          id: generateId(), 
+          type: 'info', 
+          text: `Nueva Cuadrilla: ${newRecord.cabo} (${newRecord.huerta})`, 
+          time: 'Ahora' 
+        }, 
+        ...state.alertas
+      ]
+    };
   }),
 
   actualizarCuadrilla: (id, data) => set((state) => {
@@ -606,7 +678,7 @@ export const useStore = create<AppState>((set) => ({
   }),
 
   addPagoNominaSemanal: (semana, pago) => set((state) => {
-    const existing = state.pagosNominaSemanal.find(p => p.semana === semana);
+    const existing = state.pagosNominaSemanal.find(p => p.semana === semana && p.seasonId === state.activeSeasonId);
     let updatedRecord: PagoNominaSemanal;
 
     if (existing) {
@@ -619,11 +691,12 @@ export const useStore = create<AppState>((set) => ({
       };
     } else {
       updatedRecord = { 
-        id: `pagos_semana_${semana}`.replace(/\s+/g, '_'), 
+        id: `pagos_semana_${semana}_${state.activeSeasonId}`.replace(/\s+/g, '_'), 
         semana, 
         pagos: [pago], 
         totalPagado: pago.monto, 
         status: 'Parcial', 
+        seasonId: state.activeSeasonId,
         syncStatus: 'pending' as const, 
         updatedAt: new Date().toISOString() 
       };
@@ -644,7 +717,7 @@ export const useStore = create<AppState>((set) => ({
   }),
 
   actualizarPagosNominaSemanal: (semana: string, pagos: PagoDetalle[]) => set((state) => {
-    const existing = state.pagosNominaSemanal.find(p => p.semana === semana);
+    const existing = state.pagosNominaSemanal.find(p => p.semana === semana && p.seasonId === state.activeSeasonId);
     const totalPagado = pagos.reduce((acc: number, p: PagoDetalle) => acc + p.monto, 0);
     let updatedRecord: PagoNominaSemanal;
 
@@ -652,11 +725,12 @@ export const useStore = create<AppState>((set) => ({
       updatedRecord = { ...existing, pagos, totalPagado, syncStatus: 'pending' as const, updatedAt: new Date().toISOString() };
     } else {
       updatedRecord = { 
-        id: `pagos_semana_${semana}`.replace(/\s+/g, '_'), 
+        id: `pagos_semana_${semana}_${state.activeSeasonId}`.replace(/\s+/g, '_'), 
         semana, 
         pagos, 
         totalPagado, 
         status: 'Parcial', 
+        seasonId: state.activeSeasonId,
         syncStatus: 'pending' as const, 
         updatedAt: new Date().toISOString() 
       };
@@ -835,6 +909,7 @@ export const useStore = create<AppState>((set) => ({
       status: gastoData.metodo === 'Crédito' ? 'Pendiente' : 'Pagado',
       fecha: finalFecha,
       fullDate: finalFullDate,
+      seasonId: state.activeSeasonId,
       id: generateId(), 
       syncStatus: 'pending' as const, 
       updatedAt: now.toISOString() 
@@ -844,7 +919,16 @@ export const useStore = create<AppState>((set) => ({
     pushToCloud('gastos', newRecord);
 
     return {
-      gastos: [newRecord, ...state.gastos]
+      gastos: [newRecord, ...state.gastos],
+      alertas: [
+        { 
+          id: generateId(), 
+          type: 'warning', 
+          text: `Nuevo Gasto: ${newRecord.concepto} ($${newRecord.monto.toLocaleString()})`, 
+          time: 'Ahora' 
+        }, 
+        ...state.alertas
+      ]
     };
   }),
 
@@ -891,5 +975,32 @@ export const useStore = create<AppState>((set) => ({
   syncPending: async () => {
     const { syncLocalToCloud } = await import('../lib/dbSync');
     await syncLocalToCloud();
+  },
+
+  clearAllData: async () => {
+    const { clearHistoryFromCloud } = await import('../lib/dbSync');
+    
+    // 1. Clear Firestore FIRST
+    await clearHistoryFromCloud();
+
+    const collectionsToClear = ['folios', 'gastos', 'cuadrillas', 'rayasSemanales', 'pagosNominaSemanal', 'temporadas'];
+    
+    // 2. Clear IndexedDB
+    for (const col of collectionsToClear) {
+      // @ts-ignore
+      await localDb[col].clear();
+    }
+
+    // 3. Update State
+    set({
+      folios: [],
+      gastos: [],
+      cuadrillas: [],
+      rayasSemanales: [],
+      pagosNominaSemanal: [],
+      temporadas: [],
+      activeSeasonId: '',
+      toasts: [{ id: generateId(), message: 'Historial borrado de la nube y localmente.', type: 'success' }, ...useStore.getState().toasts]
+    });
   }
 }));

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
-  Activity, 
   Info, 
   Calendar, 
   AlertTriangle, 
@@ -51,19 +50,13 @@ const Inicio = () => {
           <div className="flex items-center gap-3 text-agri-600 mb-2">
              <Zap className="w-5 h-5 animate-pulse" />
              <span className="text-[10px] font-black uppercase tracking-[0.3em]">Panel de Control</span>
+             <div className="h-4 w-px bg-agri-200 mx-1" />
+             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-agri-400">
+               {state.temporadas.find(t => t.id === state.activeSeasonId)?.nombre || 'Cargando...'}
+             </span>
           </div>
           <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">Hola, <span className="text-agri-600 italic">Paul</span></h1>
           <p className="text-agri-400 text-sm font-medium max-w-md leading-relaxed italic">Bienvenido de nuevo al centro de mando de Agricore.</p>
-        </div>
-        
-        <div className={`px-6 py-4 rounded-[2rem] border-2 flex items-center gap-4 transition-all shadow-xl shadow-agri-900/5 ${isOnline ? 'bg-white border-agri-100' : 'bg-red-50 border-red-100'}`}>
-          <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] animate-pulse' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`}></div>
-          <div>
-             <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${isOnline ? 'text-agri-700' : 'text-red-600'}`}>
-               {isOnline ? 'Sistema en Línea' : 'Modo Sin Conexión'}
-             </p>
-             <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">Latencia Proyectada: &lt; 50ms</p>
-          </div>
         </div>
       </div>
 
@@ -71,7 +64,7 @@ const Inicio = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Sync Card */}
-        <div className="lg:col-span-2 bg-agri-900 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl">
+        <div className="lg:col-span-3 bg-agri-900 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl">
            <div className="absolute top-0 right-0 w-64 h-64 bg-agri-600/20 rounded-full blur-[80px] -mr-32 -mt-32" />
            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[80px] -ml-32 -mb-32" />
            
@@ -87,12 +80,12 @@ const Inicio = () => {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                  {[
-                   { label: 'Nómina', count: state.rayasSemanales.length },
-                   { label: 'Ventas', count: state.folios.length },
-                   { label: 'Gastos', count: state.gastos.length },
+                   { label: 'Nómina', count: state.rayasSemanales.filter(r => r.seasonId === state.activeSeasonId).length },
+                   { label: 'Ventas', count: state.folios.filter(f => f.seasonId === state.activeSeasonId).length },
+                   { label: 'Gastos', count: state.gastos.filter(g => g.seasonId === state.activeSeasonId).length },
                    { 
-                     label: 'Catálogos', 
-                     count: state.empleados.length + state.productos.length + state.clientes.length + state.huertas.length + state.proveedores.length + state.cabos.length 
+                     label: 'Personal', 
+                     count: state.empleados.filter(e => e.activo !== false).length 
                    },
                  ].map((item) => (
                    <div key={item.label} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center">
@@ -118,33 +111,6 @@ const Inicio = () => {
                  </p>
               </div>
            </div>
-        </div>
-
-        {/* Quick Health Section */}
-        <div className="bg-white rounded-[3rem] p-10 border border-agri-100 shadow-sm flex flex-col">
-           <div className="flex items-center gap-4 mb-8">
-              <div className="p-3 bg-agri-50 text-agri-600 rounded-2xl">
-                 <Activity className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-display text-agri-900 tracking-tight">Salud del Sistema</h3>
-           </div>
-           
-           <div className="space-y-6 flex-1">
-              <div className="flex items-center justify-between group cursor-help">
-                 <p className="text-xs font-bold text-gray-500 group-hover:text-agri-600 transition-colors">Base de Datos Local</p>
-                 <span className="text-[10px] font-black text-agri-600 bg-agri-50 px-3 py-1 rounded-full uppercase">Local</span>
-              </div>
-              <div className="flex items-center justify-between group cursor-help">
-                 <p className="text-xs font-bold text-gray-500 group-hover:text-agri-600 transition-colors">Estado de Memoria</p>
-                 <span className="text-[10px] font-black text-agri-600 bg-agri-50 px-3 py-1 rounded-full uppercase">Optimizado</span>
-              </div>
-              <div className="flex items-center justify-between group cursor-help">
-                 <p className="text-xs font-bold text-gray-500 group-hover:text-agri-600 transition-colors">Alertas Hoy</p>
-                 <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-full uppercase">{alertas.length} Activas</span>
-              </div>
-           </div>
-
-
         </div>
 
       </div>
