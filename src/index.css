@@ -4,6 +4,38 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 font-sans;
+    @apply bg-white text-slate-900 transition-colors duration-300 font-sans;
+  }
+}
+
+@layer components {
+  /* Títulos principales: Fuertes en claro, Verde vibrante en oscuro */
+  .title-primary {
+    @apply text-agri-900 dark:text-[#4ADE80] font-display tracking-tight transition-colors;
+  }
+  
+  /* Verde vibrante para acentos e indicadores importantes */
+  .text-agri-accent {
+    @apply text-agri-600 dark:text-agri-300 font-bold transition-colors;
+  }
+
+  /* Subtítulos y textos secundarios: NEGRO en claro, GRIS SUAVE en oscuro */
+  .subtitle-secondary {
+    @apply text-slate-900 dark:text-slate-400 text-xs font-medium transition-colors leading-relaxed;
+  }
+
+  /* Labels y textos de apoyo (Uppercase small) */
+  .label-tiny {
+    @apply text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 transition-colors;
+  }
+
+  /* Card base con bordes inteligentes */
+  .card-base {
+    @apply bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm transition-all;
+  }
+
+  /* Modal/Popup base */
+  .modal-glass {
+    @apply bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/20 dark:border-slate-800 shadow-2xl;
   }
 }

@@ -239,10 +239,10 @@ const Nomina = () => {
             </button>
           )}
           <div className="space-y-1">
-            <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">
+            <h1 className="title-primary text-5xl md:text-6xl">
               {view === 'grid' ? 'Nómina' : nominaConfig[activeTab].label}
             </h1>
-            <p className="text-agri-400 text-sm font-medium leading-relaxed italic">
+            <p className="subtitle-secondary !text-sm !dark:text-white">
               {view === 'grid' 
                 ? 'Gestión de cuadrillas y nómina semanal de trabajadores de campo.' 
                 : nominaConfig[activeTab].desc}

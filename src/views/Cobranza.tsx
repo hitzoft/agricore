@@ -172,9 +172,9 @@ const Cobranza = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300 pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-        <div className="space-y-2">
-          <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">Cobranza</h1>
-          <p className="text-agri-400 text-sm font-medium max-w-md leading-relaxed italic">Gestión financiera y seguimiento de ventas y abonos del ciclo actual.</p>
+        <div className="space-y-1">
+          <h1 className="title-primary text-5xl md:text-6xl">Cobranza</h1>
+          <p className="subtitle-secondary !text-sm max-w-md">Gestión financiera y seguimiento de ventas y abonos del ciclo actual.</p>
         </div>
       </div>
       

@@ -188,6 +188,7 @@ interface AppState {
   productos: Producto[];
   temporadas: Temporada[];
   activeSeasonId: string;
+  darkMode: boolean;
   
   // Acciones
   setActiveSeason: (id: string) => void;
@@ -237,6 +238,7 @@ interface AppState {
   addAlert: (alerta: Omit<Alerta, 'id'>) => void;
   addToast: (message: string, type?: Toast['type']) => void;
   removeToast: (id: string) => void;
+  toggleDarkMode: () => void;
   clearAllData: () => Promise<void>;
 }
 
@@ -259,8 +261,17 @@ export const useStore = create<AppState>((set) => ({
   productos: [],
   temporadas: [],
   activeSeasonId: '',
+  darkMode: localStorage.getItem('theme') === 'dark',
 
   setActiveSeason: (id) => set({ activeSeasonId: id }),
+
+  toggleDarkMode: () => set((state) => {
+    const newMode = !state.darkMode;
+    localStorage.setItem('theme', newMode ? 'dark' : 'light');
+    if (newMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+    return { darkMode: newMode };
+  }),
 
   addTemporada: (tempData) => set((state) => {
     const newRecord: Temporada = { 

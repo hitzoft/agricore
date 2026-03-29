@@ -20,13 +20,13 @@ const DrillDownModal = ({ isOpen, onClose, title, items }: any) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-2xl max-h-[85vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white/20">
-        <div className="p-10 border-b border-gray-50 flex items-center justify-between bg-agri-50/30">
+      <div className="relative bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[85vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white/20 dark:border-slate-800">
+        <div className="p-10 border-b border-gray-50 dark:border-slate-800 flex items-center justify-between bg-agri-50/30 dark:bg-slate-800/50">
           <div>
-            <h3 className="text-3xl font-display text-agri-900 italic tracking-tight">Detalle de <span className="not-italic font-bold">{title}</span></h3>
-            <p className="text-[10px] font-black text-agri-400 uppercase tracking-widest mt-1.5">{items.length} Registros encontrados</p>
+            <h3 className="text-3xl font-display text-agri-900 dark:text-agri-50 italic tracking-tight">Detalle de <span className="not-italic font-bold">{title}</span></h3>
+            <p className="text-[10px] font-black text-agri-400 dark:text-slate-500 uppercase tracking-widest mt-1.5">{items.length} Registros encontrados</p>
           </div>
-          <button onClick={onClose} className="p-4 bg-white rounded-2xl text-gray-400 hover:text-agri-600 transition-all shadow-sm hover:rotate-90">
+          <button onClick={onClose} className="p-4 bg-white dark:bg-slate-800 rounded-2xl text-gray-400 dark:text-slate-500 hover:text-agri-600 dark:hover:text-agri-400 transition-all shadow-sm hover:rotate-90">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -34,42 +34,42 @@ const DrillDownModal = ({ isOpen, onClose, title, items }: any) => {
         <div className="flex-1 overflow-y-auto p-10 space-y-4 pt-6">
           {items.length === 0 ? (
             <div className="py-24 text-center">
-               <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                 <BarChart3 className="w-8 h-8 text-gray-200" />
+               <div className="w-20 h-20 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <BarChart3 className="w-8 h-8 text-gray-200 dark:text-slate-700" />
                </div>
-               <p className="text-gray-400 text-sm font-medium uppercase tracking-widest italic">No hay registros para mostrar</p>
+               <p className="text-gray-400 dark:text-slate-500 text-sm font-medium uppercase tracking-widest italic">No hay registros para mostrar</p>
             </div>
           ) : (
             items.map((item: any, idx: number) => (
-              <div key={idx} className="p-6 bg-white border border-gray-100 rounded-3xl flex items-center justify-between group hover:border-agri-200 hover:shadow-xl hover:shadow-agri-900/5 transition-all">
+              <div key={idx} className="p-6 bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700/50 rounded-3xl flex items-center justify-between group hover:border-agri-200 dark:hover:border-agri-500/50 hover:shadow-xl hover:shadow-agri-900/5 transition-all text-left">
                 <div className="flex items-center gap-5">
                   <div className={`p-4 rounded-2xl transition-transform group-hover:scale-110 ${
-                    item.statusColor?.includes('red') ? 'bg-red-50 text-red-600' : 
-                    item.statusColor?.includes('orange') ? 'bg-orange-50 text-orange-600' : 
-                    'bg-agri-50 text-agri-600'
+                    item.statusColor?.includes('red') ? 'bg-red-50 dark:bg-red-950/30 text-red-600' : 
+                    item.statusColor?.includes('orange') ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600' : 
+                    'bg-agri-50 dark:bg-agri-900/30 text-agri-600 dark:text-agri-400'
                   }`}>
                     {title.includes('Cartera') ? <Wallet className="w-5 h-5" /> : 
                      title.includes('Factura') ? <FileWarning className="w-5 h-5" /> : 
                      <Activity className="w-5 h-5" />}
                   </div>
                   <div>
-                    <p className="text-sm font-black text-agri-900 uppercase tracking-tight line-clamp-1">{item.title}</p>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{item.subtitle}</p>
+                    <p className="text-sm font-black text-agri-900 dark:text-agri-50 uppercase tracking-tight line-clamp-1">{item.title}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">{item.subtitle}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-display text-agri-900">${(item.amount || 0).toLocaleString()}</p>
-                  <p className={`text-[8px] font-black uppercase tracking-[0.2em] mt-1 ${item.statusColor || 'text-agri-400'}`}>{item.status}</p>
+                  <p className="text-lg font-display text-agri-900 dark:text-agri-50">${(item.amount || 0).toLocaleString()}</p>
+                  <p className={`text-[8px] font-black uppercase tracking-[0.2em] mt-1 ${item.statusColor || 'text-agri-400 dark:text-agri-500'}`}>{item.status}</p>
                 </div>
               </div>
             ))
           )}
         </div>
         
-        <div className="p-8 bg-gray-50 border-t border-gray-100 flex justify-end">
+        <div className="p-8 bg-gray-50 dark:bg-slate-800/80 border-t border-gray-100 dark:border-slate-800 flex justify-end">
            <button 
              onClick={onClose}
-             className="px-8 py-3 bg-agri-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95"
+             className="px-8 py-3 bg-agri-900 dark:bg-agri-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black dark:hover:bg-agri-500 transition-all shadow-lg active:scale-95"
            >
              Cerrar Ventana
            </button>
@@ -178,81 +178,81 @@ const Reportes = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-4">
-          <div className="flex items-center gap-3 text-agri-600 mb-2">
+          <div className="flex items-center gap-3 text-agri-600 dark:text-agri-400 mb-2">
              <BarChart3 className="w-5 h-5" />
-             <span className="text-[10px] font-black uppercase tracking-[0.3em]">Análisis Gerencial</span>
-             <div className="h-4 w-px bg-agri-200 mx-1" />
-             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-agri-400">
+             <span className="label-tiny">Análisis Gerencial</span>
+             <div className="h-4 w-px bg-agri-200 dark:bg-slate-700 mx-1" />
+             <span className="label-tiny !text-agri-400 dark:!text-slate-500">
                {currentSeason?.nombre || 'General'}
              </span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">Reportes</h1>
-          <p className="text-agri-400 text-sm font-medium max-w-lg leading-relaxed italic">Monitoreo integral del rendimiento operativo y salud financiera del ciclo actual.</p>
+          <h1 className="title-primary text-5xl md:text-6xl">Reportes</h1>
+          <p className="subtitle-secondary !text-sm max-w-lg">Monitoreo integral del rendimiento operativo y salud financiera del ciclo actual.</p>
         </div>
         
         <div className="flex gap-4">
-           <button className="bg-white border border-agri-100 p-4 rounded-2xl text-agri-400 hover:bg-agri-50 transition-all shadow-sm">
+           <button className="bg-white dark:bg-slate-900 border border-agri-100 dark:border-slate-800 p-4 rounded-2xl text-agri-400 dark:text-slate-500 hover:bg-agri-50 dark:hover:bg-slate-800 transition-all shadow-sm">
              <Search className="w-5 h-5" />
            </button>
-           <button className="bg-agri-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-agri-600/20 active:scale-95 transition-all">Exportar PDF</button>
+           <button className="bg-agri-600 dark:bg-agri-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-agri-600/20 active:scale-95 transition-all">Exportar PDF</button>
         </div>
       </div>
 
       {/* Primary Financial KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-agri-100/50 group hover:border-agri-200 transition-all">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-agri-100/50 dark:border-slate-800 group hover:border-agri-200 dark:hover:border-agri-500/50 transition-all">
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-agri-50 text-agri-600 rounded-2xl group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-agri-50 dark:bg-agri-950/30 text-agri-600 dark:text-agri-400 rounded-2xl group-hover:scale-110 transition-transform">
               <TrendingUp className="w-6 h-6" />
             </div>
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Ventas Brutas</p>
+            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest">Ventas Brutas</p>
           </div>
-          <h3 className="text-3xl font-display text-agri-900 tracking-tight">${totalVentas.toLocaleString()}</h3>
-          <p className="text-[10px] text-gray-400 mt-2 font-medium">Acumulado del Periodo</p>
+          <h3 className="text-3xl font-display text-agri-900 dark:text-agri-50 tracking-tight">${totalVentas.toLocaleString()}</h3>
+          <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-2 font-medium">Acumulado del Periodo</p>
         </div>
 
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-orange-100/50 group hover:border-orange-200 transition-all text-orange-950">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-orange-100/50 dark:border-slate-800 group hover:border-orange-200 transition-all">
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 rounded-2xl group-hover:scale-110 transition-transform">
               <Wallet className="w-6 h-6" />
             </div>
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Cobranza Real</p>
+            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest">Cobranza Real</p>
           </div>
-          <h3 className="text-3xl font-display text-gray-800 tracking-tight">${totalCobrado.toLocaleString()}</h3>
+          <h3 className="text-3xl font-display text-gray-800 dark:text-agri-50 tracking-tight">${totalCobrado.toLocaleString()}</h3>
           <div className="flex items-center gap-2 mt-2">
-            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-orange-400 transition-all duration-1000" 
                 style={{ width: `${totalVentas > 0 ? (totalCobrado / totalVentas) * 100 : 0}%` }}
               />
             </div>
-            <span className="text-[10px] font-black text-orange-600">{totalVentas > 0 ? Math.round((totalCobrado / totalVentas) * 100) : 0}%</span>
+            <span className="text-[10px] font-black text-orange-600 dark:text-orange-400">{totalVentas > 0 ? Math.round((totalCobrado / totalVentas) * 100) : 0}%</span>
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-red-100/50 group hover:border-red-200 transition-all">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-red-100/50 dark:border-slate-800 group hover:border-red-200 transition-all">
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-red-50 text-red-600 rounded-2xl group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-2xl group-hover:scale-110 transition-transform">
               <TrendingDown className="w-6 h-6" />
             </div>
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Costo Operativo</p>
+            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest">Costo Operativo</p>
           </div>
-          <h3 className="text-3xl font-display text-gray-800 tracking-tight">${totalEgresos.toLocaleString()}</h3>
-          <p className="text-[10px] text-gray-400 mt-2 font-medium">Gastos + Nóminas</p>
+          <h3 className="text-3xl font-display text-gray-800 dark:text-agri-50 tracking-tight">${totalEgresos.toLocaleString()}</h3>
+          <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-2 font-medium">Gastos + Nóminas</p>
         </div>
 
-        <div className={`bg-white p-8 rounded-3xl shadow-sm border group transition-all ${margenOperativo >= 0 ? 'border-agri-100/50 hover:border-agri-200' : 'border-red-100 hover:border-red-200'}`}>
+        <div className={`bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border group transition-all ${margenOperativo >= 0 ? 'border-agri-100/50 dark:border-slate-800 hover:border-agri-200 dark:hover:border-agri-500/50' : 'border-red-100 dark:border-red-900/50 hover:border-red-200'}`}>
           <div className="flex items-center gap-4 mb-4">
-            <div className={`p-3 rounded-2xl group-hover:scale-110 transition-transform ${margenOperativo >= 0 ? 'bg-agri-50 text-agri-600' : 'bg-red-50 text-red-600'}`}>
+            <div className={`p-3 rounded-2xl group-hover:scale-110 transition-transform ${margenOperativo >= 0 ? 'bg-agri-50 dark:bg-agri-950/30 text-agri-600 dark:text-agri-400' : 'bg-red-50 dark:bg-red-950/30 text-red-600'}`}>
               <Layers className="w-6 h-6" />
             </div>
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Utilidad Estimada</p>
+            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest">Utilidad Estimada</p>
           </div>
-          <h3 className={`text-3xl font-display tracking-tight ${margenOperativo >= 0 ? 'text-agri-700' : 'text-red-600'}`}>
+          <h3 className={`text-3xl font-display tracking-tight ${margenOperativo >= 0 ? 'text-agri-700 dark:text-agri-400' : 'text-red-600'}`}>
             ${margenOperativo.toLocaleString()}
           </h3>
           <div className="flex items-center gap-2 mt-2">
-             <span className={`text-[10px] font-black ${margenOperativo >= 0 ? 'text-agri-500' : 'text-red-500'} uppercase`}>
+             <span className={`text-[10px] font-black ${margenOperativo >= 0 ? 'text-agri-500 dark:text-agri-500' : 'text-red-500'} uppercase`}>
                 {totalVentas > 0 ? ((margenOperativo / totalVentas) * 100).toFixed(1) : 0}% Margen
              </span>
           </div>
@@ -263,14 +263,14 @@ const Reportes = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <button 
           onClick={() => setDrilling({ open: true, title: 'Cartera Pendiente', items: carteraPendienteItems })}
-          className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-xl hover:border-orange-200 transition-all text-left group"
+          className="bg-white dark:bg-slate-900 p-8 rounded-[32px] shadow-sm border border-gray-100 dark:border-slate-800 flex items-start gap-4 hover:shadow-xl hover:border-orange-200 dark:hover:border-orange-500/50 transition-all text-left group"
         >
-          <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
+          <div className="p-4 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
             <FileWarning className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Cartera Pendiente</p>
-            <p className="text-2xl font-bold text-orange-600">${saldoPendiente.toLocaleString()}</p>
+            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Cartera Pendiente</p>
+            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">${saldoPendiente.toLocaleString()}</p>
             <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest">Ver detalle</span>
                <ChevronRight className="w-3 h-3 text-orange-400 group-hover:translate-x-1 transition-transform" />
@@ -280,16 +280,16 @@ const Reportes = () => {
         
         <button 
           onClick={() => setDrilling({ open: true, title: 'Gastos Pend. Factura', items: gastosSinComprobanteItems })}
-          className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-xl hover:border-yellow-200 transition-all text-left group"
+          className="bg-white dark:bg-slate-900 p-8 rounded-[32px] shadow-sm border border-gray-100 dark:border-slate-800 flex items-start gap-4 hover:shadow-xl hover:border-yellow-200 dark:hover:border-yellow-500/50 transition-all text-left group"
         >
-          <div className="p-4 bg-yellow-50 text-yellow-600 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
+          <div className="p-4 bg-yellow-50 dark:bg-yellow-950/30 text-yellow-600 dark:text-yellow-400 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
             <Clock className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Gastos Pend. Factura</p>
-            <p className="text-2xl font-bold text-gray-800">{gastosSinComprobanteItems.length}</p>
+            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Gastos Pend. Factura</p>
+            <p className="text-2xl font-bold text-gray-800 dark:text-agri-50">{gastosSinComprobanteItems.length}</p>
             <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-               <span className="text-[9px] font-black text-yellow-600 uppercase tracking-widest">Ver detalle</span>
+               <span className="text-[9px] font-black text-yellow-600 dark:text-yellow-400 uppercase tracking-widest">Ver detalle</span>
                <ChevronRight className="w-3 h-3 text-yellow-600 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
@@ -297,14 +297,14 @@ const Reportes = () => {
 
         <button 
           onClick={() => setDrilling({ open: true, title: 'Proveedores x Pagar', items: proveedoresPorPagarItems })}
-          className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-xl hover:border-agri-200 transition-all text-left group"
+          className="bg-white dark:bg-slate-900 p-8 rounded-[32px] shadow-sm border border-gray-100 dark:border-slate-800 flex items-start gap-4 hover:shadow-xl hover:border-agri-200 dark:hover:border-agri-500/50 transition-all text-left group"
         >
-          <div className="p-4 bg-agri-50 text-agri-600 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
+          <div className="p-4 bg-agri-50 dark:bg-agri-950/30 text-agri-600 dark:text-agri-400 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
             <Activity className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Proveedores x Pagar</p>
-            <p className="text-2xl font-bold text-agri-700">${proveedoresPorPagarItems.reduce((acc, i) => acc + i.amount, 0).toLocaleString()}</p>
+            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Proveedores x Pagar</p>
+            <p className="text-2xl font-bold text-agri-700 dark:text-agri-400">${proveedoresPorPagarItems.reduce((acc, i) => acc + i.amount, 0).toLocaleString()}</p>
             <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                <span className="text-[9px] font-black text-agri-500 uppercase tracking-widest">Ver detalle</span>
                <ChevronRight className="w-3 h-3 text-agri-500 group-hover:translate-x-1 transition-transform" />
@@ -322,16 +322,16 @@ const Reportes = () => {
 
       {/* Distribution Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-[40px] shadow-sm border border-agri-100/30 p-10">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[40px] shadow-sm border border-agri-100/30 dark:border-slate-800 p-10">
            <div className="flex items-center justify-between mb-10">
               <div>
-                <h2 className="text-2xl font-display text-agri-900 tracking-tight">Distribución de Ingresos</h2>
-                <p className="text-agri-400 text-[10px] font-bold uppercase tracking-widest mt-1">Ranking de variedades por volumen de venta</p>
+                <h2 className="text-2xl font-display text-agri-900 dark:text-agri-50 tracking-tight">Distribución de Ingresos</h2>
+                <p className="text-agri-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Ranking de variedades por volumen de venta</p>
               </div>
               <div className="flex items-center gap-4">
                  <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-agri-500 rounded-full" />
-                    <span className="text-[9px] font-black text-gray-400 uppercase">Monto Bruto</span>
+                    <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase">Monto Bruto</span>
                  </div>
               </div>
            </div>
@@ -361,14 +361,14 @@ const Reportes = () => {
                 }
 
                 return sortedData.map((d: any, idx: number) => (
-                  <div key={idx} className="space-y-2 group">
+                  <div key={idx} className="space-y-2 group text-left">
                     <div className="flex justify-between items-end">
-                      <p className="text-xs font-black text-agri-900 uppercase tracking-tight">{d.name}</p>
-                      <p className="text-sm font-display text-agri-600">${d.value.toLocaleString()}</p>
+                      <p className="text-xs font-black text-agri-900 dark:text-agri-50 uppercase tracking-tight">{d.name}</p>
+                      <p className="text-sm font-display text-agri-600 dark:text-agri-400">${d.value.toLocaleString()}</p>
                     </div>
-                    <div className="h-3 bg-agri-50 rounded-full overflow-hidden">
+                    <div className="h-3 bg-agri-50 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-agri-600 rounded-full transition-all duration-1000 group-hover:bg-agri-700"
+                        className="h-full bg-agri-600 dark:bg-agri-500 rounded-full transition-all duration-1000 group-hover:bg-agri-700 dark:group-hover:bg-agri-400"
                         style={{ width: `${(d.value / maxVal) * 100}%` }}
                       />
                     </div>
@@ -379,8 +379,8 @@ const Reportes = () => {
         </div>
 
         {/* Bottom Panel Summary */}
-        <div className="bg-agri-900 rounded-[40px] shadow-2xl p-10 text-white flex flex-col justify-between overflow-hidden relative">
-           <div className="absolute top-0 right-0 w-40 h-40 bg-agri-600/20 rounded-full blur-[60px]" />
+        <div className="bg-agri-900 dark:bg-slate-900 rounded-[40px] shadow-2xl p-10 text-white flex flex-col justify-between overflow-hidden relative border border-white/5 dark:border-slate-800">
+           <div className="absolute top-0 right-0 w-40 h-40 bg-agri-600/20 dark:bg-agri-500/10 rounded-full blur-[60px]" />
            
            <div className="relative z-10">
               <h2 className="text-2xl font-display italic tracking-tight mb-2">Flujo de Caja</h2>

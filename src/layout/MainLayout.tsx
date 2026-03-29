@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, LayoutDashboard, Truck, Users, Receipt, Menu, X, BookOpen, Wallet, LogOut, Smartphone, User, WifiOff, CloudOff, Calendar, ChevronRight, Plus } from 'lucide-react';
+import { Home, LayoutDashboard, Truck, Users, Receipt, Menu, X, BookOpen, Wallet, LogOut, Smartphone, User, WifiOff, CloudOff, Calendar, ChevronRight, Plus, Sun, Moon } from 'lucide-react';
 import NetworkStatus from '../components/NetworkStatus';
 import { useStore } from '../store/useStore';
 import { useAuth } from '../context/AuthContext';
@@ -32,7 +32,12 @@ const MainLayout = () => {
     return total;
   }, [state]);
 
-  const { activeSeasonId, setActiveSeason, temporadas } = state;
+  const { activeSeasonId, setActiveSeason, temporadas, darkMode, toggleDarkMode } = state;
+
+  useEffect(() => {
+    if (darkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [darkMode]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -124,7 +129,7 @@ const MainLayout = () => {
         `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
           isActive 
             ? 'bg-agri-600 text-white shadow-lg shadow-agri-600/20 font-bold translate-x-1' 
-            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
         }`
       }
     >
@@ -136,14 +141,14 @@ const MainLayout = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/50">
-      {/* Header Premium Glassmorphism (Light Theme) */}
-      <header className="bg-white/80 backdrop-blur-2xl border-b border-slate-200/50 sticky top-0 z-[60] px-4 py-3 md:px-8 md:py-4 shadow-sm transition-all duration-300">
+    <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-slate-950 transition-colors duration-300">
+      {/* Header Premium Glassmorphism */}
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-[60] px-4 py-3 md:px-8 md:py-4 shadow-sm transition-all duration-300">
         <div className="flex justify-between items-center max-w-full mx-auto w-full gap-4">
           <div className="flex items-center gap-3 sm:gap-4 md:gap-5">
             <button 
               onClick={() => setMenuOpen(!menuOpen)} 
-              className="p-2.5 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-600 active:scale-95 transition-all lg:hidden border border-slate-200/60 shadow-sm"
+              className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 active:scale-95 transition-all lg:hidden border border-slate-200/60 dark:border-slate-700 shadow-sm"
             >
               {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -154,11 +159,11 @@ const MainLayout = () => {
               </div>
               <div className="flex flex-col justify-center">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl md:text-2xl font-display font-black tracking-tight leading-none bg-gradient-to-br from-slate-900 to-slate-700 bg-clip-text text-transparent mb-0.5">Agricore</h1>
+                  <h1 className="text-xl md:text-2xl font-display font-black tracking-tight leading-none bg-gradient-to-br from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent mb-0.5">Agricore</h1>
                 </div>
                 <div className="flex items-center gap-1.5 md:gap-2">
                   <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-                  <span className="text-slate-400 font-black text-[8px] md:text-[9px] uppercase tracking-[0.2em] leading-none">Management Cloud</span>
+                  <span className="text-slate-400 dark:text-slate-500 font-black text-[8px] md:text-[9px] uppercase tracking-[0.2em] leading-none">Management Cloud</span>
                 </div>
               </div>
             </div>
@@ -171,8 +176,8 @@ const MainLayout = () => {
                 </div>
                 
                 <div className="flex flex-col flex-1 pointer-events-none z-0">
-                  <span className="text-[8px] font-black text-agri-400 uppercase tracking-[0.2em] leading-none mb-1">Ciclo Activo</span>
-                  <div className="text-sm font-black text-agri-900 uppercase tracking-tight leading-none truncate pr-4">
+                  <span className="text-[8px] font-black text-agri-400 dark:text-agri-500 uppercase tracking-[0.2em] leading-none mb-1">Ciclo Activo</span>
+                  <div className="text-sm font-black text-agri-900 dark:text-agri-50 uppercase tracking-tight leading-none truncate pr-4">
                     {temporadas.find(t => t.id === activeSeasonId)?.nombre || 'Seleccionar'}
                   </div>
                 </div>
@@ -195,14 +200,22 @@ const MainLayout = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
+            {/* Toggle Tema (NUEVO) */}
+            <button
+              onClick={toggleDarkMode}
+              className="p-2.5 rounded-2xl bg-white/50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-sm"
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
             {/* Perfil y Estado (Header) */}
-            <div className="flex items-center bg-slate-100/80 rounded-2xl p-1 pr-3 border border-slate-200/50 hover:bg-slate-200/50 transition-all group relative cursor-pointer" onClick={() => setShowSyncModal(true)}>
+            <div className="flex items-center bg-slate-100/80 dark:bg-slate-800 rounded-2xl p-1 pr-3 border border-slate-200/50 dark:border-slate-700 hover:bg-slate-200/50 dark:hover:bg-slate-700 transition-all group relative cursor-pointer" onClick={() => setShowSyncModal(true)}>
                <div className="relative">
-                 <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-agri-600 transition-transform group-hover:scale-105 active:scale-95">
+                 <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-agri-600 transition-transform group-hover:scale-105 active:scale-95">
                     <User size={20} className="stroke-[2.5]" />
                  </div>
                  {/* Badge de Estado Simple */}
-                 <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center ${
+                 <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center ${
                    !isOnline ? 'bg-red-500' : totalPending > 0 ? 'bg-orange-500' : 'bg-emerald-500'
                  }`}>
                    {!isOnline ? (
@@ -216,10 +229,10 @@ const MainLayout = () => {
                </div>
                
                <div className="ml-3 hidden sm:flex flex-col">
-                  <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase leading-none mb-1">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase leading-none mb-1">
                     {totalPending > 0 ? `${totalPending} Pendientes` : isOnline ? 'Sincronizado' : 'Sin Red'}
                   </span>
-                  <p className="text-xs font-bold text-slate-800 leading-none truncate max-w-[120px]">
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-none truncate max-w-[120px]">
                     {currentUser?.email?.split('@')[0]}
                   </p>
                </div>
@@ -234,8 +247,8 @@ const MainLayout = () => {
         {/* Sidebar Moderno */}
         <nav className={`
           ${menuOpen ? 'translate-x-0' : '-translate-x-full'} 
-          fixed lg:static top-0 lg:top-auto z-50 w-72 h-screen lg:h-[calc(100vh-80px)] bg-white shadow-2xl lg:shadow-none transition-transform duration-500 ease-out
-          lg:translate-x-0 lg:w-64 xl:w-72 lg:border-r lg:border-slate-200 pt-[96px] lg:pt-0 flex flex-col
+          fixed lg:static top-0 lg:top-auto z-50 w-72 h-screen lg:h-[calc(100vh-80px)] bg-white dark:bg-slate-900 shadow-2xl lg:shadow-none transition-transform duration-500 ease-out
+          lg:translate-x-0 lg:w-64 xl:w-72 lg:border-r lg:border-slate-200 dark:lg:border-slate-800 pt-[96px] lg:pt-0 flex flex-col
         `}>
           <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
             
@@ -261,7 +274,7 @@ const MainLayout = () => {
             </div>
           </div>
           
-          <div className="p-6 border-t border-slate-100 bg-slate-50/50 pb-28 lg:pb-6">
+          <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 pb-28 lg:pb-6">
             <div className="flex flex-col gap-3">
               {showInstallBtn && (
                 <button
@@ -275,14 +288,14 @@ const MainLayout = () => {
 
               <button
                 onClick={() => setIsLogoutModalOpen(true)}
-                className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all font-black text-[10px] uppercase tracking-[0.2em] shadow-sm"
+                className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 hover:border-red-100 dark:hover:border-red-900/50 transition-all font-black text-[10px] uppercase tracking-[0.2em] shadow-sm"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Cerrar Sesión</span>
               </button>
               
               <div className="mt-2 flex justify-center">
-                <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] bg-slate-100 px-3 py-1 rounded-full">Agricore v1.3.1</span>
+                <span className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-[0.3em] bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-center">Agricore v1.3.1</span>
               </div>
             </div>
           </div>
@@ -297,12 +310,12 @@ const MainLayout = () => {
         )}
 
         {/* Contenido Principal */}
-        <main className="flex-1 overflow-y-auto w-full p-4 lg:p-10 bg-gray-50/50 pb-24 lg:pb-10">
+        <main className="flex-1 overflow-y-auto w-full p-4 lg:p-10 bg-white/50 dark:bg-slate-950/50 pb-24 lg:pb-10">
           <Outlet />
         </main>
 
         {/* Bottom Nav (Mobile Only) */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-2xl border-t border-gray-100 z-40 px-6 pb-2">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-t border-gray-100 dark:border-slate-800 z-40 px-6 pb-2">
           <div className="flex justify-between items-center h-full max-w-lg mx-auto">
             {mobileNavItems.map((item) => (
               <NavLink
@@ -311,13 +324,13 @@ const MainLayout = () => {
                 onClick={() => setMenuOpen(false)}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center gap-1.5 px-3 transition-all relative ${
-                    isActive ? 'text-agri-600' : 'text-gray-400 hover:text-gray-600'
+                    isActive ? 'text-agri-600' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <div className={`p-1 rounded-xl transition-all ${isActive ? 'bg-agri-50 scale-110' : ''}`}>
+                    <div className={`p-1 rounded-xl transition-all ${isActive ? 'bg-agri-50 dark:bg-agri-950 scale-110' : ''}`}>
                       {item.icon}
                     </div>
                     <span className={`text-[9px] font-black uppercase tracking-tighter ${isActive ? 'opacity-100' : 'opacity-60'}`}>
@@ -332,7 +345,7 @@ const MainLayout = () => {
             ))}
             <button 
               onClick={() => setMenuOpen(true)}
-              className="flex flex-col items-center justify-center gap-1.5 px-3 text-gray-400"
+              className="flex flex-col items-center justify-center gap-1.5 px-3 text-gray-400 dark:text-slate-500"
             >
               <div className="p-1 rounded-xl">
                 <Menu className="w-6 h-6" />

@@ -199,13 +199,13 @@ const Ventas = () => {
             </button>
           )}
           <div className="space-y-1">
-            <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight leading-none">
+            <h1 className="title-primary text-5xl md:text-6xl leading-none">
               {currentView === 'dashboard' && 'Ventas'}
               {currentView === 'list' && 'Historial'}
               {currentView === 'form' && 'Venta'}
               {currentView === 'detail' && 'Detalle'}
             </h1>
-            <p className="text-agri-400 text-[10px] md:text-xs font-medium max-w-md leading-relaxed italic">
+            <p className="subtitle-secondary !text-[10px] md:!text-xs !dark:text-white">
               {currentView === 'dashboard' && 'Gestión de ventas de productos'}
               {currentView === 'list' && 'Registro histórico de folios y estados de entrega.'}
               {currentView === 'form' && 'Registro de pesaje y destino para nueva salida.'}

@@ -261,21 +261,21 @@ const Gastos = () => {
     <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300 pb-20">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-        <div className="space-y-2">
+        <div className="space-y-1">
           <div className="flex items-center gap-4">
             {activeCategory && (
               <button 
                 onClick={() => setActiveCategory(null)}
-                className="p-3 bg-white border border-agri-100 rounded-2xl text-agri-600 hover:bg-agri-50 transition-all active:scale-95 shadow-sm"
+                className="p-3 bg-white border border-agri-100 dark:border-slate-800 dark:bg-slate-900 rounded-2xl text-agri-600 hover:bg-agri-50 dark:hover:bg-slate-800 transition-all active:scale-95 shadow-sm"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">
+            <h1 className="title-primary text-5xl md:text-6xl">
               {activeCategory ? activeCategory : 'Gastos'}
             </h1>
           </div>
-          <p className="text-agri-400 text-sm font-medium max-w-md leading-relaxed italic">
+          <p className="subtitle-secondary !text-sm !dark:text-white">
             {activeCategory ? gastosConfig[activeCategory].desc : 'Centro de control financiero de salidas y compras.'}
           </p>
         </div>

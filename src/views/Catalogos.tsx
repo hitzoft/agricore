@@ -160,23 +160,23 @@ const Catalogos = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-20">
+    <div className="space-y-10 max-w-7xl mx-auto pb-20 animate-in fade-in duration-500">
       {/* Header Section */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex items-center gap-4">
           {view === 'list' && (
             <button 
               onClick={() => setView('grid')}
-              className="p-2.5 bg-white rounded-2xl shadow-sm border border-agri-100 text-agri-600 hover:bg-agri-50 transition-all active:scale-90"
+              className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-agri-100 dark:border-slate-800 text-agri-600 hover:bg-agri-50 dark:hover:bg-slate-800 transition-all active:scale-95"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
           <div className="space-y-1">
-            <h1 className="text-4xl md:text-5xl font-display text-agri-900 tracking-tight">
+            <h1 className="title-primary text-5xl md:text-6xl">
               {view === 'grid' ? 'Catálogos' : catalogConfig[activeTab].label}
             </h1>
-            <p className="text-agri-400 text-sm font-medium leading-relaxed italic">
+            <p className="subtitle-secondary !text-sm max-w-md">
               {view === 'grid' 
                 ? 'Administración central de datos maestros y parámetros operativos.' 
                 : catalogConfig[activeTab].desc}
