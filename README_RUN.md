@@ -1,51 +1,52 @@
 # Instrucciones para Correr el Proyecto Agricore
 
-Este documento detalla los pasos necesarios para levantar el entorno de desarrollo.
+Este documento detalla los pasos necesarios para levantar el entorno de desarrollo y realizar el despliegue.
 
 ## Requisitos Previos
 
-*   **Docker Desktop**: Asegúrate de que esté abierto y funcionando.
-*   **Java 17+**: Necesario para el backend.
 *   **Node.js & npm**: Necesarios para el frontend.
+*   **Firebase CLI**: Necesario para el despliegue (`npm install -g firebase-tools`).
+
+## Arquitectura
+
+El proyecto es una **PWA (Progressive Web App)** con arquitectura **Serverless**:
+- **Frontend**: React + Vite + Tailwind CSS.
+- **Persistencia Local**: IndexedDB (vía Dexie.js).
+- **Backend & Cloud**: Firebase (Firestore, Authentication, Hosting).
 
 ## Pasos para Inicializar
 
-### 1. Base de Datos (Docker)
+### 1. Instalación de Dependencias
 
-Navega a la carpeta del backend y levanta el contenedor de PostgreSQL:
+Desde la raíz del proyecto:
 
 ```bash
-cd backend
-docker-compose up -d
+npm install
 ```
 
-> [!IMPORTANT]
-> La base de datos corre en el puerto **5433**.
+### 2. Ejecutar Entorno de Desarrollo
 
-### 2. Backend (Spring Boot)
-
-Desde la misma carpeta `backend`, ejecuta el siguiente comando:
+Arranca el servidor de desarrollo de Vite:
 
 ```bash
-./mvnw spring-boot:run
-```
-
-El backend estará disponible en: [http://localhost:8081](http://localhost:8081)
-
-### 3. Frontend (Vite)
-
-Navega a la raíz del proyecto y arranca el servidor de desarrollo:
-
-```bash
-cd ..
 npm run dev
 ```
 
-El frontend estará disponible en: [http://localhost:5173](http://localhost:5173)
+El sistema estará disponible en: [http://localhost:5173](http://localhost:5173)
+
+### 3. Despliegue a Producción
+
+Para desplegar a Firebase Hosting:
+
+```bash
+npm run build
+firebase deploy
+```
 
 ---
 
-## Solución de Problemas
+## Características Técnicas
 
-*   **Error de conexión a la BD**: Verifica que Docker esté corriendo y que el puerto 5433 no esté ocupado.
-*   **Error de CORS**: El backend está configurado para aceptar peticiones desde `http://localhost:5173`. Si el frontend corre en otro puerto, actualiza `application.properties`.
+- **Sincronización Offline**: Los datos se guardan primero localmente y se sincronizan automáticamente con la nube cuando hay red.
+- **Autenticación**: Integración exclusiva con Google SSO.
+- **Seguridad**: Reglas de Cloud Firestore para asegurar que cada usuario vea solo sus datos.
