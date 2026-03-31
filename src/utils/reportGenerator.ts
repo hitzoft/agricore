@@ -503,15 +503,17 @@ export const generateSalesReportPDF = async (
 
     doc.setFontSize(9);
     doc.setTextColor(71, 85, 105);
-    doc.text('RESUMEN DE CARTERA', 215, finalY + 6);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMEN DE OPERACIÓN', 215, finalY + 6);
     
     doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
-    doc.text(`Total Ventas: $${statsTotalVentas.toLocaleString()}`, 215, finalY + 11);
+    doc.text(`Total Neto: $${statsTotalVentas.toLocaleString()}`, 215, finalY + 11);
     doc.setTextColor(22, 101, 52);
     doc.text(`Total Cobrado: $${statsTotalCobrado.toLocaleString()}`, 215, finalY + 15);
     doc.setTextColor(185, 28, 28);
-    doc.text(`Pendiente por cobrar: $${statsSaldoPendiente.toLocaleString()}`, 215, finalY + 19);
+    doc.text(`Saldo Pendiente: $${statsSaldoPendiente.toLocaleString()}`, 215, finalY + 19);
 
     doc.save(`Historial_Ventas_${seasonName.replace(/\s+/g, '_')}.pdf`);
     return true;
@@ -897,25 +899,28 @@ export const generateInventoryReportPDF = async (
     const totalKG = Object.values(inventory).reduce((acc: number, d: any) => acc + d.totalWeight, 0);
     const totalFolios = Object.values(inventory).reduce((acc: number, d: any) => acc + d.count, 0);
 
-    doc.setFontSize(12);
-    doc.setTextColor(15, 23, 42);
-    doc.setFont('helvetica', 'bold');
-    doc.text('RESUMEN CONSOLIDADO', 14, finalY);
+    const boxWidth = 73;
+    const boxHeight = 22;
+    const boxX = pageWidth - 14 - boxWidth;
+    
+    doc.setFillColor(248, 250, 252);
+    doc.rect(boxX, finalY, boxWidth, boxHeight, 'F');
+    doc.setDrawColor(203, 213, 225);
+    doc.rect(boxX, finalY, boxWidth, boxHeight, 'S');
 
-    autoTable(doc, {
-      startY: finalY + 5,
-      body: [
-        ['Total de Movimientos (Salidas):', `${totalFolios} Folios registrados`],
-        ['Peso Neto Total Comercializado:', `${totalKG.toLocaleString()} KG`],
-        ['Equivalente en Toneladas:', `${(totalKG / 1000).toFixed(2)} Toneladas`],
-      ],
-      theme: 'plain',
-      styles: { fontSize: 10, cellPadding: 2 },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 80 },
-        1: { textColor: [22, 101, 52], fontStyle: 'bold' }
-      }
-    });
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMEN DE OPERACIÓN', boxX + 5, finalY + 6);
+    
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(51, 65, 85);
+    doc.text(`Total KG: ${totalKG.toLocaleString()} KG`, boxX + 5, finalY + 11);
+    doc.setTextColor(22, 101, 52);
+    doc.text(`Total Toneladas: ${(totalKG / 1000).toFixed(2)} TON`, boxX + 5, finalY + 15);
+    doc.setTextColor(15, 23, 42); // Navy/Slate for non-financial or just slate
+    doc.text(`Cargas Totales: ${totalFolios}`, boxX + 5, finalY + 19);
 
     doc.save(`Inventario_Salida_${seasonName.replace(/\s+/g, '_')}.pdf`);
     return true;
@@ -1002,16 +1007,33 @@ export const generateReceivablesReportPDF = async (
     });
 
     const finalY = (doc as any).lastAutoTable.finalY + 15;
-    const totalBalance = Object.values(receivables).reduce((acc: number, c: any) => acc + c.balance, 0);
+    const totalGBruto = Object.values(receivables).reduce((acc: number, c: any) => acc + c.total, 0);
+    const totalGCobrado = Object.values(receivables).reduce((acc: number, c: any) => acc + c.paid, 0);
+    const totalGBalance = totalGBruto - totalGCobrado;
 
-    doc.setFontSize(12);
-    doc.setTextColor(15, 23, 42);
+    // Standardized Summary Box (Portrait)
+    const boxWidth = 73;
+    const boxHeight = 22;
+    const boxX = pageWidth - 14 - boxWidth;
+    
+    doc.setFillColor(248, 250, 252); // Slate-50
+    doc.rect(boxX, finalY, boxWidth, boxHeight, 'F');
+    doc.setDrawColor(203, 213, 225);
+    doc.rect(boxX, finalY, boxWidth, boxHeight, 'S');
+
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105);
     doc.setFont('helvetica', 'bold');
-    doc.text('RESUMEN DE CARTERA PENDIENTE', 14, finalY);
-
-    doc.setFontSize(14);
+    doc.text('RESUMEN DE OPERACIÓN', boxX + 5, finalY + 6);
+    
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(51, 65, 85);
+    doc.text(`Total Neto: $${totalGBruto.toLocaleString()}`, boxX + 5, finalY + 11);
+    doc.setTextColor(22, 101, 52);
+    doc.text(`Total Cobrado: $${totalGCobrado.toLocaleString()}`, boxX + 5, finalY + 15);
     doc.setTextColor(185, 28, 28);
-    doc.text(`TOTAL POR COBRAR: $${totalBalance.toLocaleString()} MXN`, 14, finalY + 10);
+    doc.text(`Saldo Pendiente: $${totalGBalance.toLocaleString()}`, boxX + 5, finalY + 19);
 
     doc.save(`Cuentas_por_Cobrar_${seasonName.replace(/\s+/g, '_')}.pdf`);
     return true;
