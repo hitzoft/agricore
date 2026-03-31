@@ -214,6 +214,14 @@ const Reportes = () => {
           'Agricore'
         );
         state.addToast('Reporte de Egresos generado con éxito', 'success');
+      } else if (type === 'Inventario') {
+        const { generateInventoryReportPDF } = await import('../utils/reportGenerator');
+        await generateInventoryReportPDF(
+          currentSeason?.nombre || 'General',
+          folios,
+          'Agricore'
+        );
+        state.addToast('Inventario de Salida generado con éxito', 'success');
       } else {
         state.addToast(`El reporte de ${type} estará disponible pronto.`, 'warning');
       }

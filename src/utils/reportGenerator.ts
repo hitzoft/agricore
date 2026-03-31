@@ -808,3 +808,119 @@ export const generateExpensesReportPDF = async (
     throw error;
   }
 }
+
+export const generateInventoryReportPDF = async (
+  seasonName: string,
+  folios: any[],
+  companyName: string = 'AGRICORE'
+) => {
+  try {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    try { 
+      doc.addImage('/favicon.png', 'PNG', 14, 8, 12, 12); 
+    } catch (e) {
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(14, 8, 12, 12, 2, 2, 'FD');
+      doc.setFillColor(16, 185, 129);
+      doc.circle(20, 14, 4, 'F');
+    }
+
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42); 
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyName, 28, 13);
+    
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Sistema de Gestión Agrícola', 28, 17.5);
+
+    doc.setFontSize(18);
+    doc.setTextColor(15, 23, 42); 
+    doc.setFont('helvetica', 'bold');
+    doc.text('Inventario de Salida', pageWidth / 2, 25, { align: 'center' });
+
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`generado: ${formatDate(new Date().toISOString())}`, pageWidth - 14, 13, { align: 'right' });
+    doc.text(`Periodo Agrícola: ${seasonName}`, pageWidth - 14, 17.5, { align: 'right' });
+
+    // Logic: Group by Variety
+    const inventory = folios.reduce((acc: any, f) => {
+      const variety = f.variedad || 'Sin Variedad';
+      const weight = parseFloat(String(f.peso || '0').replace(/[^0-9.]/g, '')) || 0;
+      
+      if (!acc[variety]) {
+        acc[variety] = { totalWeight: 0, count: 0, totalAmount: 0 };
+      }
+      acc[variety].totalWeight += weight;
+      acc[variety].count += 1;
+      acc[variety].totalAmount += (f.montoTotal || 0);
+      return acc;
+    }, {});
+
+    const head = [['Variedad', 'Cargas (Folios)', 'Total KG', 'Tonelaje', 'Ingreso Generado', 'Precio Prom x KG']];
+    const body = Object.entries(inventory).map(([variety, data]: [string, any]) => {
+      const avgPrice = data.totalWeight > 0 ? (data.totalAmount / data.totalWeight) : 0;
+      return [
+        variety,
+        data.count,
+        `${data.totalWeight.toLocaleString()} KG`,
+        `${(data.totalWeight / 1000).toFixed(2)} TON`,
+        `$${data.totalAmount.toLocaleString()}`,
+        `$${avgPrice.toFixed(2)}`
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 35,
+      head: head,
+      body: body,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [15, 23, 42], halign: 'center' },
+      columnStyles: {
+        1: { halign: 'center' },
+        2: { halign: 'right' },
+        3: { halign: 'right', fontStyle: 'bold' },
+        4: { halign: 'right' },
+        5: { halign: 'right' }
+      }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Totals Section
+    const totalKG = Object.values(inventory).reduce((acc: number, d: any) => acc + d.totalWeight, 0);
+    const totalFolios = Object.values(inventory).reduce((acc: number, d: any) => acc + d.count, 0);
+
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMEN CONSOLIDADO', 14, finalY);
+
+    autoTable(doc, {
+      startY: finalY + 5,
+      body: [
+        ['Total de Movimientos (Salidas):', `${totalFolios} Folios registrados`],
+        ['Peso Neto Total Comercializado:', `${totalKG.toLocaleString()} KG`],
+        ['Equivalente en Toneladas:', `${(totalKG / 1000).toFixed(2)} Toneladas Métricas`],
+      ],
+      theme: 'plain',
+      styles: { fontSize: 10, cellPadding: 2 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 80 },
+        1: { textColor: [22, 101, 52], fontStyle: 'bold' }
+      }
+    });
+
+    doc.save(`Inventario_Salida_${seasonName.replace(/\s+/g, '_')}.pdf`);
+    return true;
+  } catch (error) {
+    console.error('Inventory Report PDF Error:', error);
+    throw error;
+  }
+};
