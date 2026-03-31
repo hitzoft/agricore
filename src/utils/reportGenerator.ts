@@ -907,7 +907,7 @@ export const generateInventoryReportPDF = async (
       body: [
         ['Total de Movimientos (Salidas):', `${totalFolios} Folios registrados`],
         ['Peso Neto Total Comercializado:', `${totalKG.toLocaleString()} KG`],
-        ['Equivalente en Toneladas:', `${(totalKG / 1000).toFixed(2)} Toneladas Métricas`],
+        ['Equivalente en Toneladas:', `${(totalKG / 1000).toFixed(2)} Toneladas`],
       ],
       theme: 'plain',
       styles: { fontSize: 10, cellPadding: 2 },
@@ -921,6 +921,102 @@ export const generateInventoryReportPDF = async (
     return true;
   } catch (error) {
     console.error('Inventory Report PDF Error:', error);
+    throw error;
+  }
+};
+
+export const generateReceivablesReportPDF = async (
+  seasonName: string,
+  folios: any[],
+  clientes: any[],
+  companyName: string = 'AGRICORE'
+) => {
+  try {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    try { doc.addImage('/favicon.png', 'PNG', 14, 8, 12, 12); } catch (e) {}
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42); 
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyName, 28, 13);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Sistema de Gestión Agrícola', 28, 17.5);
+
+    doc.setFontSize(18);
+    doc.setTextColor(15, 23, 42); 
+    doc.setFont('helvetica', 'bold');
+    doc.text('Cuentas por Cobrar', pageWidth / 2, 25, { align: 'center' });
+
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`generado: ${formatDate(new Date().toISOString())}`, pageWidth - 14, 13, { align: 'right' });
+    doc.text(`Periodo Agrícola: ${seasonName}`, pageWidth - 14, 17.5, { align: 'right' });
+
+    // Grouping logic
+    const receivables = folios.reduce((acc: any, f) => {
+      const clientId = f.clienteId || 'Sin Cliente';
+      const clientName = clientes.find(c => c.id === clientId)?.nombre || f.destino || 'Sin Nombre';
+      const cobrado = (f.abonos || []).reduce((sum: number, a: any) => sum + (a.monto || 0), 0) || 0;
+      const total = f.montoTotal || 0;
+      const saldo = total - cobrado;
+
+      if (total > 0) {
+        if (!acc[clientId]) {
+          acc[clientId] = { name: clientName, total: 0, paid: 0, balance: 0, count: 0 };
+        }
+        acc[clientId].total += total;
+        acc[clientId].paid += cobrado;
+        acc[clientId].balance += saldo;
+        acc[clientId].count += 1;
+      }
+      return acc;
+    }, {});
+
+    const head = [['Cliente', 'Ventas', 'Ingreso Bruto', 'Total Cobrado', 'Saldo Pendiente']];
+    const body = Object.values(receivables)
+      .sort((a: any, b: any) => b.balance - a.balance)
+      .map((c: any) => [
+        c.name,
+        `${c.count} remisiones`,
+        `$${c.total.toLocaleString()}`,
+        `$${c.paid.toLocaleString()}`,
+        `$${c.balance.toLocaleString()}`
+      ]);
+
+    autoTable(doc, {
+      startY: 35,
+      head: head,
+      body: body,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [51, 65, 85], halign: 'center' },
+      columnStyles: {
+        1: { halign: 'center' },
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right', fontStyle: 'bold', textColor: [185, 28, 28] }
+      }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    const totalBalance = Object.values(receivables).reduce((acc: number, c: any) => acc + c.balance, 0);
+
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMEN DE CARTERA PENDIENTE', 14, finalY);
+
+    doc.setFontSize(14);
+    doc.setTextColor(185, 28, 28);
+    doc.text(`TOTAL POR COBRAR: $${totalBalance.toLocaleString()} MXN`, 14, finalY + 10);
+
+    doc.save(`Cuentas_por_Cobrar_${seasonName.replace(/\s+/g, '_')}.pdf`);
+    return true;
+  } catch (error) {
+    console.error('CXC Report PDF Error:', error);
     throw error;
   }
 };

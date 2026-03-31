@@ -85,7 +85,7 @@ const DrillDownModal = ({ isOpen, onClose, title, items }: any) => {
 
 const Reportes = () => {
   const state = useStore();
-  const { activeSeasonId, temporadas } = state;
+  const { activeSeasonId, temporadas, clientes } = state;
 
   const currentSeason = useMemo(() => 
     temporadas.find(t => t.id === activeSeasonId)
@@ -222,6 +222,15 @@ const Reportes = () => {
           'Agricore'
         );
         state.addToast('Inventario de Salida generado con éxito', 'success');
+      } else if (type === 'CXC') {
+        const { generateReceivablesReportPDF } = await import('../utils/reportGenerator');
+        await generateReceivablesReportPDF(
+          currentSeason?.nombre || 'General',
+          folios,
+          clientes,
+          'Agricore'
+        );
+        state.addToast('Reporte de Cuentas por Cobrar generado con éxito', 'success');
       } else {
         state.addToast(`El reporte de ${type} estará disponible pronto.`, 'warning');
       }
@@ -663,13 +672,6 @@ const Reportes = () => {
           </div>
         ))}
 
-        {/* Info Card helper */}
-        <div className="bg-agri-900 dark:bg-slate-800 p-10 rounded-[3rem] text-white flex flex-col justify-center relative overflow-hidden h-80">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
-           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-4">Información</p>
-           <h3 className="text-3xl font-display italic leading-tight">Exporta registros oficiales</h3>
-           <p className="mt-4 text-sm text-white/60 leading-relaxed italic">Todos los reportes se generan filtrando automáticamente los datos de la temporada: <span className="text-agri-400 font-bold not-italic font-sans">{currentSeason?.nombre}</span></p>
-        </div>
       </div>
     )}
   </div>
