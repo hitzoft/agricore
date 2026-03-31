@@ -514,8 +514,46 @@ const Reportes = () => {
            </div>
         </div>
 
+        {/* Bottom Panel Summary */}
+        <div className="lg:col-span-1 lg:row-span-2 bg-agri-900 dark:bg-slate-900 rounded-[40px] shadow-2xl p-10 text-white flex flex-col justify-between overflow-hidden relative border border-white/5 dark:border-slate-800">
+           <div className="absolute top-0 right-0 w-40 h-40 bg-agri-600/20 dark:bg-agri-500/10 rounded-full blur-[60px]" />
+           
+           <div className="relative z-10">
+              <h2 className="text-2xl font-display italic tracking-tight mb-2">Flujo de Caja</h2>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-12">Consolidado operativo</p>
+              
+              <div className="space-y-8">
+                 <div className="flex items-center gap-4">
+                    <div className="w-2 h-10 bg-agri-400 rounded-full" />
+                    <div>
+                       <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest leading-none mb-1">Margen Cobrado Real</p>
+                       <p className={`text-2xl font-display ${totalCobrado - totalEgresos >= 0 ? 'text-white' : 'text-red-400'}`}>
+                          ${(totalCobrado - totalEgresos).toLocaleString()}
+                       </p>
+                    </div>
+                 </div>
+
+                 <div className="flex items-center gap-4">
+                    <div className="w-2 h-10 bg-white/20 rounded-full" />
+                    <div>
+                       <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest leading-none mb-1">Ventas por Facturar/Cobrar</p>
+                       <p className="text-2xl font-display text-white/60">${saldoPendiente.toLocaleString()}</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+
+           <div className="relative z-10 pt-10 mt-auto border-t border-white/10">
+              <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-4">Eficiencia Financiera</p>
+              <div className="flex items-center gap-3">
+                <div className={`w-2 h-2 rounded-full ${margenOperativo > 0 ? 'bg-green-400' : 'bg-red-400'}`} />
+                 <span className="text-[10px] font-black uppercase tracking-tight">Utilidad del {totalVentas > 0 ? ((margenOperativo / totalVentas) * 100).toFixed(1) : 0}%</span>
+              </div>
+           </div>
+        </div>
+
         {/* Weight Distribution Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[40px] shadow-sm border border-agri-100/30 dark:border-slate-800 p-10 mt-8">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[40px] shadow-sm border border-agri-100/30 dark:border-slate-800 p-10">
            <div className="flex items-center justify-between mb-10">
               <div>
                 <h2 className="text-2xl font-display text-agri-900 dark:text-agri-50 tracking-tight">Carga por Variedad</h2>
@@ -562,51 +600,13 @@ const Reportes = () => {
                     </div>
                     <div className="h-3 bg-blue-50 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-1000 group-hover:bg-blue-700 dark:group-hover:bg-blue-400"
+                        className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-1000 group-hover:bg-blue-700 dark:group-hover:bg-agri-400"
                         style={{ width: `${(d.value / maxWeight) * 100}%` }}
                       />
                     </div>
                   </div>
                 ));
               })()}
-           </div>
-        </div>
-
-        {/* Bottom Panel Summary */}
-        <div className="bg-agri-900 dark:bg-slate-900 rounded-[40px] shadow-2xl p-10 text-white flex flex-col justify-between overflow-hidden relative border border-white/5 dark:border-slate-800">
-           <div className="absolute top-0 right-0 w-40 h-40 bg-agri-600/20 dark:bg-agri-500/10 rounded-full blur-[60px]" />
-           
-           <div className="relative z-10">
-              <h2 className="text-2xl font-display italic tracking-tight mb-2">Flujo de Caja</h2>
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-12">Consolidado operativo</p>
-              
-              <div className="space-y-8">
-                 <div className="flex items-center gap-4">
-                    <div className="w-2 h-10 bg-agri-400 rounded-full" />
-                    <div>
-                       <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest leading-none mb-1">Margen Cobrado Real</p>
-                       <p className={`text-2xl font-display ${totalCobrado - totalEgresos >= 0 ? 'text-white' : 'text-red-400'}`}>
-                          ${(totalCobrado - totalEgresos).toLocaleString()}
-                       </p>
-                    </div>
-                 </div>
-
-                 <div className="flex items-center gap-4">
-                    <div className="w-2 h-10 bg-white/20 rounded-full" />
-                    <div>
-                       <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest leading-none mb-1">Ventas por Facturar/Cobrar</p>
-                       <p className="text-2xl font-display text-white/60">${saldoPendiente.toLocaleString()}</p>
-                    </div>
-                 </div>
-              </div>
-           </div>
-
-           <div className="relative z-10 pt-10 mt-auto border-t border-white/10">
-              <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-4">Eficiencia Financiera</p>
-              <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${margenOperativo > 0 ? 'bg-green-400' : 'bg-red-400'}`} />
-                 <span className="text-[10px] font-black uppercase tracking-tight">Utilidad del {totalVentas > 0 ? ((margenOperativo / totalVentas) * 100).toFixed(1) : 0}%</span>
-              </div>
            </div>
         </div>
         </div>
