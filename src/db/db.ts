@@ -2,8 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type { 
   Empleado, Cliente, Proveedor, Huerta, Cabo, 
   CuentaBancaria, FolioVenta, Gasto, 
-  NominaCuadrilla, RayaSemanal, PagoNominaSemanal, Producto, Temporada,
-  BaseRecord
+  NominaCuadrilla, RayaSemanal, PagoNominaSemanal, Producto, Temporada
 } from '../store/useStore';
 
 export class AgricoreDB extends Dexie {

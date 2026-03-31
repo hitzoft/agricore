@@ -8,6 +8,7 @@ import {
   ShoppingBag, ArrowLeft, Users, Briefcase,
   ChevronRight, Calendar, CheckCircle2
 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 type TabType = 'Empleados' | 'Cabos' | 'Huertas' | 'Proveedores' | 'Cuentas' | 'Clientes' | 'Productos' | 'Temporadas';
 
@@ -17,6 +18,21 @@ const Catalogos = () => {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Confirmation state
+  const [confirmToggle, setConfirmToggle] = useState<{
+    isOpen: boolean;
+    catalog: any;
+    id: string;
+    name: string;
+    isActivating: boolean;
+  }>({
+    isOpen: false,
+    catalog: null,
+    id: '',
+    name: '',
+    isActivating: false
+  });
 
   // Auto-open Temporadas modal if coming from the MainLayout alert
   React.useEffect(() => {
@@ -60,8 +76,7 @@ const Catalogos = () => {
     addHuerta, updateHuerta, addProveedor, updateProveedor,
     addCuentaBancaria, updateCuentaBancaria, clientes, addCliente, updateCliente,
     productos, addProducto, updateProducto,
-    temporadas, addTemporada, updateTemporada, activeSeasonId, setActiveSeason,
-    clearAllData
+    temporadas, addTemporada, updateTemporada, activeSeasonId, setActiveSeason
   } = useStore(useShallow(state => ({
     empleados: state.empleados,
     cabos: state.cabos,
@@ -89,15 +104,24 @@ const Catalogos = () => {
     updateProducto: state.updateProducto,
     addTemporada: state.addTemporada,
     updateTemporada: state.updateTemporada,
-    setActiveSeason: state.setActiveSeason,
-    clearAllData: state.clearAllData
+    setActiveSeason: state.setActiveSeason
   })));
 
   const [formData, setFormData] = useState<any>({});
 
-  const handleToggle = (catalogMapName: 'empleados' | 'cabos' | 'huertas' | 'proveedores' | 'cuentasBancarias' | 'clientes' | 'productos' | 'temporadas', id: string, name: string) => {
-    if (window.confirm(`¿Cambiar el estado de ${name}?`)) {
-      toggleActivo(catalogMapName, id);
+  const handleToggle = (catalogMapName: 'empleados' | 'cabos' | 'huertas' | 'proveedores' | 'cuentasBancarias' | 'clientes' | 'productos' | 'temporadas', id: string, name: string, currentActive?: boolean) => {
+    setConfirmToggle({
+      isOpen: true,
+      catalog: catalogMapName,
+      id,
+      name,
+      isActivating: currentActive === false
+    });
+  };
+
+  const executeToggle = () => {
+    if (confirmToggle.catalog && confirmToggle.id) {
+      toggleActivo(confirmToggle.catalog, confirmToggle.id);
     }
   };
 
@@ -176,7 +200,7 @@ const Catalogos = () => {
             <h1 className="title-primary text-5xl md:text-6xl">
               {view === 'grid' ? 'Catálogos' : catalogConfig[activeTab].label}
             </h1>
-            <p className="subtitle-secondary !text-sm max-w-md">
+            <p className="subtitle-secondary !text-sm !text-slate-500 dark:!text-slate-400">
               {view === 'grid' 
                 ? 'Administración central de datos maestros y parámetros operativos.' 
                 : catalogConfig[activeTab].desc}
@@ -195,16 +219,16 @@ const Catalogos = () => {
               <button
                 key={tab}
                 onClick={() => selectCatalog(tab)}
-                className="group relative bg-white p-6 rounded-[2.5rem] border border-agri-100 shadow-sm hover:shadow-xl hover:shadow-agri-600/5 hover:-translate-y-1 transition-all duration-300 text-left overflow-hidden active:scale-[0.98]"
+                className="group relative bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-agri-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-agri-600/5 hover:-translate-y-1 transition-all duration-300 text-left overflow-hidden active:scale-[0.98]"
               >
                 <div className={`w-14 h-14 ${config.color} rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-500 shadow-lg`}>
                   <Icon className="w-7 h-7" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-display text-agri-900 mb-1 group-hover:text-agri-600 transition-colors">{config.label}</h3>
-                  <p className="text-agri-400 text-sm leading-snug">{config.desc}</p>
+                  <h3 className="text-2xl font-display text-agri-900 dark:text-agri-50 mb-1 group-hover:text-agri-600 transition-colors">{config.label}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-snug">{config.desc}</p>
                 </div>
-                <div className="absolute top-6 right-6 p-2 rounded-xl bg-agri-50 text-agri-400 group-hover:bg-agri-600 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0">
+                <div className="absolute top-6 right-6 p-2 rounded-xl bg-agri-50 dark:bg-slate-800 text-agri-400 dark:text-slate-500 group-hover:bg-agri-600 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0">
                   <ChevronRight className="w-4 h-4" />
                 </div>
               </button>
@@ -214,12 +238,12 @@ const Catalogos = () => {
       ) : (
         /* LIST VIEW: Specific Catalog Items */
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-          <div className="flex justify-between items-center bg-agri-50/50 p-4 rounded-[2rem] border border-agri-100/50 shadow-inner">
+          <div className="flex justify-between items-center bg-agri-50/50 dark:bg-slate-800/40 p-4 rounded-[2rem] border border-agri-100/50 dark:border-slate-700/50 shadow-inner">
             <div className="flex items-center gap-3 ml-2">
               <div className={`p-2 rounded-xl ${catalogConfig[activeTab].color} text-white`}>
                 {React.createElement(catalogConfig[activeTab].icon, { className: 'w-4 h-4' })}
               </div>
-              <span className="text-sm font-black text-agri-900 uppercase tracking-widest">{items.length} {catalogConfig[activeTab].label}</span>
+              <span className="text-sm font-black text-agri-900 dark:text-agri-50 uppercase tracking-widest">{items.length} {catalogConfig[activeTab].label}</span>
             </div>
             <button 
               onClick={handleOpenModal}
@@ -236,28 +260,30 @@ const Catalogos = () => {
               const isActive = item.id === activeSeasonId;
 
               return (
-                <div key={item.id} className={`bg-white rounded-[2rem] p-6 border transition-all duration-200 ${item.activo === false ? 'border-red-100 bg-gray-50 opacity-75' : 'border-agri-100/50 shadow-sm hover:shadow-md'} relative group`}>
+                <div key={item.id} className={`bg-white dark:bg-slate-900 rounded-[2rem] p-6 border transition-all duration-200 ${item.activo === false ? 'border-red-100 dark:border-red-900/30 bg-gray-50 dark:bg-slate-800/40 opacity-75' : 'border-agri-100/50 dark:border-slate-800 shadow-sm hover:shadow-md'} relative group`}>
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      <div className={`p-3 rounded-2xl border ${item.activo === false ? 'bg-gray-200 text-gray-400 border-gray-300' : 'bg-agri-50 text-agri-600 border-agri-100 shadow-inner'}`}>
+                      <div className={`p-3 rounded-2xl border ${item.activo === false ? 'bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-600 border-gray-300 dark:border-slate-700' : 'bg-agri-50 dark:bg-agri-500/10 text-agri-600 dark:text-agri-400 border-agri-100 dark:border-agri-500/20 shadow-inner'}`}>
                         {activeTab === 'Temporadas' && isActive ? (
-                          <CheckCircle2 className="w-6 h-6 text-blue-600 animate-in zoom-in" />
+                          <CheckCircle2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-in zoom-in" />
                         ) : (
                           <Icon className="w-6 h-6" />
                         )}
                       </div>
                       <div>
-                        <h3 className={`font-bold text-lg leading-tight ${item.activo === false ? 'text-gray-600 line-through decoration-gray-400' : 'text-gray-900 italic'}`}>{item.nombre}</h3>
+                        <h3 className={`font-bold text-lg leading-tight ${item.activo === false ? 'text-gray-600 dark:text-slate-400 line-through decoration-gray-400 dark:decoration-slate-600' : 'text-gray-900 dark:text-agri-50 italic'}`}>
+                          {activeTab === 'Cuentas' ? `${item.banco || 'Banco'} — ${item.numero}` : item.nombre}
+                        </h3>
                         <div className="flex items-center gap-2 mt-0.5">
                           {activeTab === 'Temporadas' && (
-                             <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-tighter ${isActive ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-gray-400 bg-gray-50 border-gray-100'}`}>
+                             <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-tighter ${isActive ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20' : 'text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700'}`}>
                                {isActive ? 'Ciclo Activo' : 'Histórico'}
                              </span>
                           )}
                           {item.activo === false ? (
-                             <span className="text-[9px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 uppercase">Inactivo</span>
+                             <span className="text-[9px] font-black text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-2 py-0.5 rounded-lg border border-red-100 dark:border-red-900/30 uppercase">Inactivo</span>
                           ) : (activeTab !== 'Temporadas' && (
-                             <span className="text-[9px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-lg border border-green-100 uppercase tracking-tighter">Vigente</span>
+                             <span className="text-[9px] font-black text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-2 py-0.5 rounded-lg border border-green-100 dark:border-green-900/30 uppercase tracking-tighter">Vigente</span>
                           ))}
                         </div>
                       </div>
@@ -265,7 +291,7 @@ const Catalogos = () => {
                     <div className="flex gap-1">
                       <button 
                         onClick={() => handleEdit(item)}
-                        className="p-2 text-gray-400 hover:text-agri-600 hover:bg-agri-50 rounded-xl transition-all active:scale-90"
+                        className="p-2 text-gray-400 dark:text-slate-500 hover:text-agri-600 dark:hover:text-agri-400 hover:bg-agri-50 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-90"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -276,7 +302,7 @@ const Catalogos = () => {
                             'Cuentas': 'cuentasBancarias', 'Clientes': 'clientes', 'Empleados': 'empleados',
                             'Cabos': 'cabos', 'Huertas': 'huertas', 'Proveedores': 'proveedores', 'Productos': 'productos', 'Temporadas': 'temporadas'
                           };
-                          handleToggle(catalogMap[activeTab], item.id, item.nombre);
+                          handleToggle(catalogMap[activeTab], item.id, item.nombre, item.activo !== false);
                         }}
                         className={`p-2 rounded-xl transition-all active:scale-90 ${item.activo === false ? 'text-green-600 hover:bg-green-50' : 'text-red-400 hover:bg-red-50'}`}
                       >
@@ -288,16 +314,16 @@ const Catalogos = () => {
                   <div className="space-y-2.5 mt-4 text-sm font-medium">
                     {activeTab === 'Temporadas' && (
                       <>
-                        {item.descripcion && <p className="text-xs text-agri-400 italic mb-2 line-clamp-2 px-1">{item.descripcion}</p>}
-                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
-                          <span className="text-gray-400 text-[10px] uppercase font-bold tracking-tighter">Creada</span>
-                          <span className="text-gray-600 text-xs">{new Date(item.fechaCreacion || Date.now()).toLocaleDateString()}</span>
+                        {item.descripcion && <p className="text-xs text-agri-400 dark:text-slate-400 italic mb-2 line-clamp-2 px-1">{item.descripcion}</p>}
+                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50">
+                          <span className="text-gray-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-tighter">Creada</span>
+                          <span className="text-gray-600 dark:text-slate-300 text-xs">{new Date(item.fechaCreacion || Date.now()).toLocaleDateString()}</span>
                         </div>
                         
                         {!isActive && (
                           <button 
                             onClick={() => setActiveSeason(item.id)}
-                            className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-2xl transition-all active:scale-95 border border-blue-100 shadow-sm"
+                            className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-600 dark:hover:bg-blue-500 hover:text-white rounded-2xl transition-all active:scale-95 border border-blue-100 dark:border-blue-500/20 shadow-sm"
                           >
                             <CheckCircle2 className="w-4 h-4" />
                             <span className="text-[10px] font-black uppercase tracking-widest">Establecer como activo</span>
@@ -307,32 +333,45 @@ const Catalogos = () => {
                     )}
                     {activeTab === 'Empleados' && (
                       <>
-                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">Puesto</span><span className="text-gray-800">{item.puesto}</span></div>
-                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">Sueldo Diario</span><span className="font-bold text-agri-600">${item.sueldoDiario || 0}</span></div>
-                        {item.telefono && <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">Teléfono</span><span className="text-gray-800">{item.telefono}</span></div>}
+                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50"><span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Puesto</span><span className="text-gray-800 dark:text-agri-50">{item.puesto}</span></div>
+                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50"><span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Sueldo Diario</span><span className="font-bold text-agri-600 dark:text-agri-400">${item.sueldoDiario || 0}</span></div>
+                        {item.telefono && <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50"><span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Teléfono</span><span className="text-gray-800 dark:text-agri-50">{item.telefono}</span></div>}
                       </>
                     )}
                     {activeTab === 'Cabos' && (
                       <>
-                        {item.telefono ? <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">Teléfono</span><span className="text-gray-800">{item.telefono}</span></div> : <p className="text-gray-400 text-xs py-1 italic opacity-60">Sin detalles adicionales</p>}
+                        {item.telefono ? <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50"><span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Teléfono</span><span className="text-gray-800 dark:text-agri-50">{item.telefono}</span></div> : <p className="text-gray-400 dark:text-slate-600 text-xs py-1 italic opacity-60">Sin detalles adicionales</p>}
                       </>
                     )}
                     {activeTab === 'Huertas' && (
-                      <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">Superficie</span><span className="text-gray-800">{item.hectareas} Has</span></div>
+                      <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50"><span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Superficie</span><span className="text-gray-800 dark:text-agri-50">{item.hectareas} Has</span></div>
                     )}
                     {activeTab === 'Proveedores' && (
                       <>
-                        {item.rfc && <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">RFC</span><span className="text-gray-800">{item.rfc}</span></div>}
-                        {item.telefono && <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">Teléfono</span><span className="text-gray-800">{item.telefono}</span></div>}
+                        {item.rfc && <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50"><span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">RFC</span><span className="text-gray-800 dark:text-agri-50">{item.rfc}</span></div>}
+                        {item.telefono && <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50"><span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Teléfono</span><span className="text-gray-800 dark:text-agri-50">{item.telefono}</span></div>}
                       </>
                     )}
                     {activeTab === 'Cuentas' && (
-                      <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">Cuenta / Clabe</span><span className="text-gray-800 truncate max-w-[140px] font-mono text-xs">{item.numero}</span></div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50">
+                          <span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Banco</span>
+                          <span className="text-gray-800 dark:text-agri-50 font-bold">{item.banco || 'No especificado'}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50">
+                          <span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Cuenta / Clabe</span>
+                          <span className="text-gray-800 dark:text-slate-300 truncate max-w-[140px] font-mono text-xs">{item.numero}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50">
+                          <span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Referencia</span>
+                          <span className="text-agri-600 dark:text-agri-400 font-black text-xs uppercase italic truncate max-w-[140px]">{item.nombre}</span>
+                        </div>
+                      </div>
                     )}
                     {activeTab === 'Clientes' && (
                       <>
-                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">RFC</span><span className="text-gray-800">{item.rfc || 'X'}</span></div>
-                        {item.esExportacion && <div className="flex justify-between items-center py-1.5 border-b border-gray-50"><span className="text-gray-400 text-xs text uppercase font-bold tracking-tighter">Envío</span><span className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100 uppercase tracking-tighter">Exportación</span></div>}
+                        <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50"><span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">RFC</span><span className="text-gray-800 dark:text-agri-50">{item.rfc || 'X'}</span></div>
+                        {item.esExportacion && <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-slate-800/50"><span className="text-gray-400 dark:text-slate-500 text-xs text uppercase font-bold tracking-tighter">Envío</span><span className="text-[10px] font-black bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-lg border border-blue-100 dark:border-blue-500/20 uppercase tracking-tighter">Exportación</span></div>}
                       </>
                     )}
 
@@ -341,12 +380,12 @@ const Catalogos = () => {
               );
             })}
             {items.length === 0 && (
-              <div className="col-span-full py-20 flex flex-col items-center justify-center border border-dashed border-agri-200 rounded-[3rem] bg-agri-50/30 shadow-inner">
-                <div className="bg-white p-5 rounded-[2rem] shadow-sm mb-4">
-                  {React.createElement(catalogConfig[activeTab].icon, { className: 'w-8 h-8 text-agri-200' })}
+              <div className="col-span-full py-20 flex flex-col items-center justify-center border border-dashed border-agri-200 dark:border-slate-800 rounded-[3rem] bg-agri-50/30 dark:bg-slate-800/20 shadow-inner">
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] shadow-sm mb-4">
+                  {React.createElement(catalogConfig[activeTab].icon, { className: 'w-8 h-8 text-agri-200 dark:text-slate-700' })}
                 </div>
-                <h3 className="text-xl font-display text-agri-900 mb-1 italic opacity-60">Sin registros aún</h3>
-                <p className="text-agri-400 text-sm font-medium">Pulsa el botón superior para agregar el primer registro.</p>
+                <h3 className="text-xl font-display text-agri-900 dark:text-agri-50 mb-1 italic opacity-60">Sin registros aún</h3>
+                <p className="text-agri-400 dark:text-slate-500 text-sm font-medium">Pulsa el botón superior para agregar el primer registro.</p>
               </div>
             )}
           </div>
@@ -356,7 +395,7 @@ const Catalogos = () => {
       {/* MODAL SECTION */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20 dark:border-slate-800">
             <div className={`px-8 py-6 text-white relative flex items-center justify-between shadow-lg ${catalogConfig[activeTab].color}`}>
               <div>
                 <h2 className="text-xl font-display text-white">{editingId ? 'Modificar' : 'Alta de'}</h2>
@@ -364,88 +403,82 @@ const Catalogos = () => {
               </div>
               <button onClick={() => setShowModal(false)} className="bg-white/20 text-white hover:bg-white/30 p-2.5 rounded-2xl transition-all active:scale-95 shadow-inner"><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="p-8 space-y-6 bg-white dark:bg-slate-900 transition-colors">
               <div className="space-y-2">
-                <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 ml-1">
+                <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 dark:text-slate-500 ml-1">
                   {activeTab === 'Productos' ? 'Nombre' : 
                    activeTab === 'Temporadas' ? 'Nombre del Ciclo' : 
                    (activeTab === 'Cabos' || activeTab === 'Huertas') ? 'Nombre' :
                    'Nombre Completo / Razón Social'}
                 </label>
-                <input required type="text" value={formData.nombre || ''} onChange={e => setFormData({...formData, nombre: e.target.value})} className="w-full bg-agri-50/30 border border-agri-100/30 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 transition-all shadow-inner placeholder:opacity-30" placeholder={activeTab === 'Temporadas' ? 'Ej: Temporada 2024-2025' : "Nombre..."} />
+                <input required type="text" value={formData.nombre || ''} onChange={e => setFormData({...formData, nombre: e.target.value})} className="w-full bg-agri-50/30 dark:bg-slate-800 border border-agri-100/30 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 dark:text-agri-50 transition-all shadow-inner placeholder:opacity-30" placeholder={activeTab === 'Temporadas' ? 'Ej: Temporada 2024-2025' : "Nombre..."} />
               </div>
 
               {activeTab === 'Temporadas' && (
                 <div className="space-y-2">
-                  <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 ml-1">Descripción / Notas</label>
-                  <textarea value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} className="w-full bg-agri-50/30 border border-agri-100/30 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-medium text-agri-600 transition-all shadow-inner h-24 resize-none" placeholder="Detalles del ciclo agrícola..." />
+                  <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 dark:text-slate-500 ml-1">Descripción / Notas</label>
+                  <textarea value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} className="w-full bg-agri-50/30 dark:bg-slate-800 border border-agri-100/30 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-medium text-agri-600 dark:text-agri-100 transition-all shadow-inner h-24 resize-none" placeholder="Detalles del ciclo agrícola..." />
                 </div>
               )}
               
               {activeTab === 'Empleados' && (
                 <>
                   <div className="space-y-2">
-                    <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 ml-1">Puesto</label>
-                    <input required type="text" value={formData.puesto || ''} onChange={e => setFormData({...formData, puesto: e.target.value})} className="w-full bg-agri-50/30 border border-agri-100/30 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 transition-all shadow-inner" placeholder="Ej: Tractorista" />
+                    <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 dark:text-slate-500 ml-1">Puesto</label>
+                    <input required type="text" value={formData.puesto || ''} onChange={e => setFormData({...formData, puesto: e.target.value})} className="w-full bg-agri-50/30 dark:bg-slate-800 border border-agri-100/30 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 dark:text-agri-50 transition-all shadow-inner" placeholder="Ej: Tractorista" />
                   </div>
                   <div className="space-y-2">
-                    <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 ml-1">Sueldo Diario ($)</label>
-                    <input required type="number" value={formData.sueldoDiario || ''} onChange={e => setFormData({...formData, sueldoDiario: Number(e.target.value)})} className="w-full bg-agri-50/40 border border-agri-100/50 rounded-2xl px-5 py-4 text-base focus:ring-4 focus:ring-agri-500/10 outline-none font-black text-agri-600 transition-all shadow-inner" placeholder="0.00" />
+                    <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 dark:text-slate-500 ml-1">Sueldo Diario ($)</label>
+                    <input required type="number" value={formData.sueldoDiario || ''} onChange={e => setFormData({...formData, sueldoDiario: Number(e.target.value)})} className="w-full bg-agri-50/40 dark:bg-slate-800 border border-agri-100/50 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-base focus:ring-4 focus:ring-agri-500/10 outline-none font-black text-agri-600 dark:text-agri-400 transition-all shadow-inner" placeholder="0.00" />
                   </div>
                 </>
               )}
 
               {activeTab === 'Huertas' && (
                 <div className="space-y-2">
-                  <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 ml-1">Hectáreas (Opcional)</label>
-                  <input type="number" step="0.1" value={formData.hectareas || ''} onChange={e => setFormData({...formData, hectareas: e.target.value})} className="w-full bg-agri-50/30 border border-agri-100/30 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 shadow-inner" placeholder="0.0" />
+                  <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 dark:text-slate-500 ml-1">Hectáreas (Opcional)</label>
+                  <input type="number" step="0.1" value={formData.hectareas || ''} onChange={e => setFormData({...formData, hectareas: e.target.value})} className="w-full bg-agri-50/30 dark:bg-slate-800 border border-agri-100/30 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 dark:text-agri-50 shadow-inner" placeholder="0.0" />
                 </div>
               )}
 
               {(activeTab === 'Proveedores' || activeTab === 'Empleados' || activeTab === 'Cabos' || activeTab === 'Clientes') && (
                 <div className="space-y-2">
-                  <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 ml-1">Teléfono (Opcional)</label>
-                  <input type="tel" value={formData.telefono || ''} onChange={e => setFormData({...formData, telefono: e.target.value})} className="w-full bg-agri-50/30 border border-agri-100/30 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 shadow-inner" placeholder="667123..." />
+                  <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 dark:text-slate-500 ml-1">Teléfono (Opcional)</label>
+                  <input type="tel" value={formData.telefono || ''} onChange={e => setFormData({...formData, telefono: e.target.value})} className="w-full bg-agri-50/30 dark:bg-slate-800 border border-agri-100/30 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 dark:text-agri-50 shadow-inner" placeholder="667123..." />
                 </div>
               )}
 
               {activeTab === 'Cuentas' && (
-                <div className="space-y-2">
-                  <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 ml-1">Número de Cuenta / Clabe</label>
-                  <input type="text" value={formData.numero || ''} onChange={e => setFormData({...formData, numero: e.target.value})} className="w-full bg-agri-50/30 border border-agri-100/30 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-mono tracking-widest shadow-inner text-center font-bold" placeholder="0001 ..." />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 dark:text-slate-500 ml-1">Banco</label>
+                    <input required type="text" value={formData.banco || ''} onChange={e => setFormData({...formData, banco: e.target.value})} className="w-full bg-agri-50/30 dark:bg-slate-800 border border-agri-100/30 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-bold text-agri-900 dark:text-agri-50 shadow-inner" placeholder="Ej: BBVA, Banamex..." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-display text-xs font-black uppercase tracking-widest text-agri-900/40 dark:text-slate-500 ml-1">Número de Cuenta / Clabe</label>
+                    <input required type="text" value={formData.numero || ''} onChange={e => setFormData({...formData, numero: e.target.value})} className="w-full bg-agri-50/30 dark:bg-slate-800 border border-agri-100/30 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-agri-500/10 outline-none font-mono tracking-widest shadow-inner text-center font-bold dark:text-agri-50" placeholder="0001 ..." />
+                  </div>
+                </>
               )}
 
-              <div className="pt-6 flex gap-3 border-t border-agri-50">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-4 border border-agri-100 text-agri-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-agri-50 active:scale-95 transition-all">Cancelar</button>
+              <div className="pt-6 flex gap-3 border-t border-agri-50 dark:border-slate-800">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-4 border border-agri-100 dark:border-slate-800 text-agri-400 dark:text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-agri-50 dark:hover:bg-slate-800 active:scale-95 transition-all">Cancelar</button>
                 <button type="submit" className={`flex-1 px-4 py-4 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl active:scale-95 transition-all ${catalogConfig[activeTab].color} shadow-${catalogConfig[activeTab].color.split('-')[1]}/20`}>Confirmar</button>
               </div>
             </form>
           </div>
         </div>
       )}
-      {/* Zona de Peligro - Borrado de Historial */}
-      <div className="mt-20 mb-10 border-t border-red-100 pt-10">
-        <div className="bg-red-50/50 rounded-3xl p-8 border border-red-100/50 max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2 text-center md:text-left">
-            <h3 className="text-lg font-black text-red-900 uppercase tracking-tight">Zona de Peligro</h3>
-            <p className="text-xs font-bold text-red-600/60 max-w-md">
-              Esto eliminará todo el **historial de Ventas, Gastos, Nóminas y Temporadas** de forma permanente. 
-              Tus catálogos de empleados, clientes y proveedores no se verán afectados.
-            </p>
-          </div>
-          <button 
-            onClick={() => {
-              if (window.confirm("¿ESTÁS SEGURO? Esta acción es IRREVERSIBLE y borrará todo el historial operativo.")) {
-                clearAllData();
-              }
-            }}
-            className="px-8 py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-red-700 active:scale-95 transition-all shadow-xl shadow-red-200"
-          >
-            Borrar Todo el Historial
-          </button>
-        </div>
-      </div>
+      {/* Confirmación Premium de Estado */}
+      <ConfirmModal
+        isOpen={confirmToggle.isOpen}
+        onClose={() => setConfirmToggle(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={executeToggle}
+        title={confirmToggle.isActivating ? 'Reactivar Registro' : 'Desactivar Registro'}
+        message={`¿Estás seguro que deseas ${confirmToggle.isActivating ? 'activar' : 'desactivar'} a "${confirmToggle.name}"?`}
+        confirmText={confirmToggle.isActivating ? 'Activar ahora' : 'Desactivar ahora'}
+        type={confirmToggle.isActivating ? 'info' : 'danger'}
+      />
     </div>
   );
 };

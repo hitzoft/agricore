@@ -8,9 +8,13 @@ import {
   Clock, 
   Activity,
   BarChart3,
-  Search,
   X,
-  ChevronRight
+  ChevronRight,
+  HelpCircle,
+  Scale,
+  FileText,
+  LayoutDashboard,
+  Download
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
@@ -172,6 +176,53 @@ const Reportes = () => {
       }).filter((i): i is any => i !== null)
   , [gastos]);
 
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'documents'>('dashboard');
+
+  const handleDownloadReport = async (type: string) => {
+    state.addToast(`Preparando reporte de ${type}...`, 'info');
+    
+    try {
+      const { generateBalancePDF, generateSalesReportPDF, generateExpensesReportPDF } = await import('../utils/reportGenerator');
+      
+      if (type === 'Balance') {
+        await generateBalancePDF(
+          currentSeason?.nombre || 'General',
+          {
+            folios,
+            gastos,
+            rayas: rayasSemanales,
+            cuadrillas,
+            cuentas: state.cuentasBancarias
+          },
+          'Agricore'
+        );
+        state.addToast('Balance General generado con éxito', 'success');
+      } else if (type === 'Ventas') {
+        await generateSalesReportPDF(
+          currentSeason?.nombre || 'General',
+          folios,
+          'Agricore'
+        );
+        state.addToast('Historial de Ventas generado con éxito', 'success');
+      } else if (type === 'Gastos') {
+        await generateExpensesReportPDF(
+          currentSeason?.nombre || 'General',
+          gastos,
+          rayasSemanales,
+          cuadrillas,
+          state.pagosNominaSemanal,
+          'Agricore'
+        );
+        state.addToast('Reporte de Egresos generado con éxito', 'success');
+      } else {
+        state.addToast(`El reporte de ${type} estará disponible pronto.`, 'warning');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      state.addToast('Error al generar el reporte', 'error');
+    }
+  };
+
   return (
     <div className="space-y-10 max-w-7xl mx-auto animate-in fade-in duration-500 pb-20">
       
@@ -187,25 +238,45 @@ const Reportes = () => {
              </span>
           </div>
           <h1 className="title-primary text-5xl md:text-6xl">Reportes</h1>
-          <p className="subtitle-secondary !text-sm max-w-lg">Monitoreo integral del rendimiento operativo y salud financiera del ciclo actual.</p>
+          <p className="subtitle-secondary !text-sm max-w-lg">Monitoreo integral del rendimiento operativo y generación de documentos oficiales.</p>
         </div>
         
-        <div className="flex gap-4">
-           <button className="bg-white dark:bg-slate-900 border border-agri-100 dark:border-slate-800 p-4 rounded-2xl text-agri-400 dark:text-slate-500 hover:bg-agri-50 dark:hover:bg-slate-800 transition-all shadow-sm">
-             <Search className="w-5 h-5" />
-           </button>
-           <button className="bg-agri-600 dark:bg-agri-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-agri-600/20 active:scale-95 transition-all">Exportar PDF</button>
+        <div className="flex bg-agri-50 dark:bg-slate-900 p-1.5 rounded-2xl border border-agri-100 dark:border-slate-800">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'dashboard' ? 'bg-white dark:bg-agri-600 text-agri-900 dark:text-white shadow-sm' : 'text-agri-400 dark:text-slate-500 hover:text-agri-600'}`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            Dashboard
+          </button>
+          <button 
+            onClick={() => setActiveTab('documents')}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'documents' ? 'bg-white dark:bg-agri-600 text-agri-900 dark:text-white shadow-sm' : 'text-agri-400 dark:text-slate-500 hover:text-agri-600'}`}
+          >
+            <FileText className="w-4 h-4" />
+            Documentos
+          </button>
         </div>
       </div>
 
-      {/* Primary Financial KPIs */}
+      {activeTab === 'dashboard' ? (
+        <>
+          {/* Primary Financial KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-agri-100/50 dark:border-slate-800 group hover:border-agri-200 dark:hover:border-agri-500/50 transition-all">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-agri-50 dark:bg-agri-950/30 text-agri-600 dark:text-agri-400 rounded-2xl group-hover:scale-110 transition-transform">
               <TrendingUp className="w-6 h-6" />
             </div>
-            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest">Ventas Brutas</p>
+            <div className="flex items-center gap-2">
+              <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-none">Ventas Brutas</p>
+              <div className="group/help relative cursor-help">
+                <HelpCircle className="w-3 h-3 text-gray-300 dark:text-slate-700 hover:text-agri-500 transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[8px] font-bold uppercase tracking-widest rounded-lg opacity-0 invisible group-hover/help:opacity-100 group-hover/help:visible transition-all z-50 text-center leading-tight">
+                  Monto total facturado/pactado de todas las ventas en este ciclo.
+                </div>
+              </div>
+            </div>
           </div>
           <h3 className="text-3xl font-display text-agri-900 dark:text-agri-50 tracking-tight">${totalVentas.toLocaleString()}</h3>
           <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-2 font-medium">Acumulado del Periodo</p>
@@ -216,7 +287,15 @@ const Reportes = () => {
             <div className="p-3 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 rounded-2xl group-hover:scale-110 transition-transform">
               <Wallet className="w-6 h-6" />
             </div>
-            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest">Cobranza Real</p>
+            <div className="flex items-center gap-2">
+              <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-none">Cobranza Real</p>
+              <div className="group/help relative cursor-help">
+                <HelpCircle className="w-3 h-3 text-gray-300 dark:text-slate-700 hover:text-orange-500 transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[8px] font-bold uppercase tracking-widest rounded-lg opacity-0 invisible group-hover/help:opacity-100 group-hover/help:visible transition-all z-50 text-center leading-tight">
+                  Monto total efectivamente cobrado y registrado en caja.
+                </div>
+              </div>
+            </div>
           </div>
           <h3 className="text-3xl font-display text-gray-800 dark:text-agri-50 tracking-tight">${totalCobrado.toLocaleString()}</h3>
           <div className="flex items-center gap-2 mt-2">
@@ -235,7 +314,15 @@ const Reportes = () => {
             <div className="p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-2xl group-hover:scale-110 transition-transform">
               <TrendingDown className="w-6 h-6" />
             </div>
-            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest">Costo Operativo</p>
+            <div className="flex items-center gap-2">
+              <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-none">Costo Operativo</p>
+              <div className="group/help relative cursor-help">
+                <HelpCircle className="w-3 h-3 text-gray-300 dark:text-slate-700 hover:text-red-500 transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[8px] font-bold uppercase tracking-widest rounded-lg opacity-0 invisible group-hover/help:opacity-100 group-hover/help:visible transition-all z-50 text-center leading-tight">
+                  Suma total de gastos (insumos, servicios) y pago de nóminas.
+                </div>
+              </div>
+            </div>
           </div>
           <h3 className="text-3xl font-display text-gray-800 dark:text-agri-50 tracking-tight">${totalEgresos.toLocaleString()}</h3>
           <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-2 font-medium">Gastos + Nóminas</p>
@@ -246,7 +333,15 @@ const Reportes = () => {
             <div className={`p-3 rounded-2xl group-hover:scale-110 transition-transform ${margenOperativo >= 0 ? 'bg-agri-50 dark:bg-agri-950/30 text-agri-600 dark:text-agri-400' : 'bg-red-50 dark:bg-red-950/30 text-red-600'}`}>
               <Layers className="w-6 h-6" />
             </div>
-            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest">Utilidad Estimada</p>
+            <div className="flex items-center gap-2">
+              <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-none">Utilidad Estimada</p>
+              <div className="group/help relative cursor-help">
+                <HelpCircle className="w-3 h-3 text-gray-300 dark:text-slate-700 hover:text-agri-500 transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[8px] font-bold uppercase tracking-widest rounded-lg opacity-0 invisible group-hover/help:opacity-100 group-hover/help:visible transition-all z-50 text-center leading-tight">
+                  Diferencia entre Ventas Brutas y Costos Operativos.
+                </div>
+              </div>
+            </div>
           </div>
           <h3 className={`text-3xl font-display tracking-tight ${margenOperativo >= 0 ? 'text-agri-700 dark:text-agri-400' : 'text-red-600'}`}>
             ${margenOperativo.toLocaleString()}
@@ -269,7 +364,15 @@ const Reportes = () => {
             <FileWarning className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Cartera Pendiente</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest leading-none">Cartera Pendiente</p>
+              <div className="group/help relative cursor-help">
+                <HelpCircle className="w-3 h-3 text-gray-300 dark:text-slate-700 hover:text-agri-500 transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[8px] font-bold uppercase tracking-widest rounded-lg opacity-0 invisible group-hover/help:opacity-100 group-hover/help:visible transition-all z-50 text-center leading-tight">
+                  Monto total de ventas realizadas que aún no han sido cobradas.
+                </div>
+              </div>
+            </div>
             <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">${saldoPendiente.toLocaleString()}</p>
             <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest">Ver detalle</span>
@@ -286,7 +389,15 @@ const Reportes = () => {
             <Clock className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Gastos Pend. Factura</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest leading-none">Gastos Pend. Factura</p>
+              <div className="group/help relative cursor-help">
+                <HelpCircle className="w-3 h-3 text-gray-300 dark:text-slate-700 hover:text-agri-500 transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[8px] font-bold uppercase tracking-widest rounded-lg opacity-0 invisible group-hover/help:opacity-100 group-hover/help:visible transition-all z-50 text-center leading-tight">
+                  Número de gastos registrados que no tienen marcado el recibo de comprobante fiscal.
+                </div>
+              </div>
+            </div>
             <p className="text-2xl font-bold text-gray-800 dark:text-agri-50">{gastosSinComprobanteItems.length}</p>
             <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                <span className="text-[9px] font-black text-yellow-600 dark:text-yellow-400 uppercase tracking-widest">Ver detalle</span>
@@ -296,14 +407,22 @@ const Reportes = () => {
         </button>
 
         <button 
-          onClick={() => setDrilling({ open: true, title: 'Proveedores x Pagar', items: proveedoresPorPagarItems })}
+          onClick={() => setDrilling({ open: true, title: 'Proveedores POR Pagar', items: proveedoresPorPagarItems })}
           className="bg-white dark:bg-slate-900 p-8 rounded-[32px] shadow-sm border border-gray-100 dark:border-slate-800 flex items-start gap-4 hover:shadow-xl hover:border-agri-200 dark:hover:border-agri-500/50 transition-all text-left group"
         >
           <div className="p-4 bg-agri-50 dark:bg-agri-950/30 text-agri-600 dark:text-agri-400 rounded-2xl group-hover:scale-110 transition-transform shadow-sm">
             <Activity className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <p className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Proveedores x Pagar</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest leading-none">Proveedores POR Pagar</p>
+              <div className="group/help relative cursor-help">
+                <HelpCircle className="w-3 h-3 text-gray-300 dark:text-slate-700 hover:text-agri-500 transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[8px] font-bold uppercase tracking-widest rounded-lg opacity-0 invisible group-hover/help:opacity-100 group-hover/help:visible transition-all z-50 text-center leading-tight">
+                  Saldo total adeudado a proveedores en compras realizadas a crédito.
+                </div>
+              </div>
+            </div>
             <p className="text-2xl font-bold text-agri-700 dark:text-agri-400">${proveedoresPorPagarItems.reduce((acc, i) => acc + i.amount, 0).toLocaleString()}</p>
             <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                <span className="text-[9px] font-black text-agri-500 uppercase tracking-widest">Ver detalle</span>
@@ -378,6 +497,64 @@ const Reportes = () => {
            </div>
         </div>
 
+        {/* Weight Distribution Chart */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[40px] shadow-sm border border-agri-100/30 dark:border-slate-800 p-10 mt-8">
+           <div className="flex items-center justify-between mb-10">
+              <div>
+                <h2 className="text-2xl font-display text-agri-900 dark:text-agri-50 tracking-tight">Carga por Variedad</h2>
+                <p className="text-agri-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Total de kilogramos distribuidos en el mercado</p>
+              </div>
+              <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                    <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase">KG Netos</span>
+                 </div>
+              </div>
+           </div>
+
+           <div className="space-y-8">
+              {(() => {
+                const weightDist = folios.reduce((acc: Record<string, number>, f: any) => {
+                  const varName = f.variedad || 'Otras';
+                  const weight = Number(f.peso) || 0;
+                  acc[varName] = (acc[varName] || 0) + weight;
+                  return acc;
+                }, {});
+
+                const sortedWeights = Object.entries(weightDist)
+                  .map(([name, value]) => ({ name, value }))
+                  .sort((a: any, b: any) => b.value - a.value)
+                  .slice(0, 5);
+
+                const maxWeight = Math.max(...sortedWeights.map((d: any) => d.value), 1);
+
+                if (sortedWeights.length === 0) {
+                  return (
+                    <div className="h-64 flex flex-col items-center justify-center text-center opacity-40 italic border-2 border-dashed border-gray-100 dark:border-slate-800 rounded-[2rem]">
+                      <Scale className="w-12 h-12 mb-4 text-gray-200 dark:text-slate-700" />
+                      <p className="text-sm font-medium uppercase tracking-widest">Sin datos para graficar</p>
+                    </div>
+                  );
+                }
+
+                return sortedWeights.map((d: any, idx: number) => (
+                  <div key={idx} className="space-y-2 group text-left">
+                    <div className="flex justify-between items-end">
+                      <p className="text-xs font-black text-agri-900 dark:text-agri-50 uppercase tracking-tight">{d.name}</p>
+                      <p className="text-sm font-display text-blue-600 dark:text-blue-400">{d.value.toLocaleString()} <span className="text-[10px] not-italic text-gray-400">KG</span></p>
+                    </div>
+                    <div className="h-3 bg-blue-50 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-1000 group-hover:bg-blue-700 dark:group-hover:bg-blue-400"
+                        style={{ width: `${(d.value / maxWeight) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ));
+              })()}
+           </div>
+        </div>
+
         {/* Bottom Panel Summary */}
         <div className="bg-agri-900 dark:bg-slate-900 rounded-[40px] shadow-2xl p-10 text-white flex flex-col justify-between overflow-hidden relative border border-white/5 dark:border-slate-800">
            <div className="absolute top-0 right-0 w-40 h-40 bg-agri-600/20 dark:bg-agri-500/10 rounded-full blur-[60px]" />
@@ -410,14 +587,85 @@ const Reportes = () => {
            <div className="relative z-10 pt-10 mt-auto border-t border-white/10">
               <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-4">Eficiencia Financiera</p>
               <div className="flex items-center gap-3">
-                 <div className={`w-2 h-2 rounded-full ${margenOperativo > 0 ? 'bg-green-400' : 'bg-red-400'}`} />
+                <div className={`w-2 h-2 rounded-full ${margenOperativo > 0 ? 'bg-green-400' : 'bg-red-400'}`} />
                  <span className="text-[10px] font-black uppercase tracking-tight">Utilidad del {totalVentas > 0 ? ((margenOperativo / totalVentas) * 100).toFixed(1) : 0}%</span>
               </div>
            </div>
         </div>
+        </div>
+      </>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+        {[
+          { 
+            title: 'Historial de Ventas', 
+            desc: 'Detalle completo de folios, clientes y facturación del periodo.', 
+            icon: <TrendingUp className="w-6 h-6" />,
+            color: 'bg-agri-50 text-agri-600',
+            type: 'Ventas'
+          },
+          { 
+            title: 'Reporte de Egresos', 
+            desc: 'Desglose de gastos operativos, insumos y compras a proveedores.', 
+            icon: <TrendingDown className="w-6 h-6" />,
+            color: 'bg-red-50 text-red-600',
+            type: 'Gastos'
+          },
+          { 
+            title: 'Cuentas por Cobrar', 
+            desc: 'Estado actual de cartera vencida y pagos pendientes de clientes.', 
+            icon: <Wallet className="w-6 h-6" />,
+            color: 'bg-orange-50 text-orange-600',
+            type: 'Cartera'
+          },
+          { 
+            title: 'Balance General', 
+            desc: 'Resumen financiero consolidado: Ingresos vs Egresos del ciclo.', 
+            icon: <Activity className="w-6 h-6" />,
+            color: 'bg-blue-50 text-blue-600',
+            type: 'Balance'
+          },
+          { 
+            title: 'Inventario de Salida', 
+            desc: 'Reporte por tonelaje y variedad de producto comercializado.', 
+            icon: <Scale className="w-6 h-6" />,
+            color: 'bg-slate-100 text-slate-600',
+            type: 'Inventario'
+          }
+        ].map((report, idx) => (
+          <div 
+            key={idx}
+            className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-agri-100 dark:border-slate-800 shadow-sm group hover:shadow-2xl hover:shadow-agri-900/5 transition-all flex flex-col justify-between h-80"
+          >
+            <div>
+               <div className={`p-4 rounded-2xl w-fit mb-8 group-hover:scale-110 transition-transform ${report.color} dark:bg-slate-800`}>
+                 {report.icon}
+               </div>
+               <h3 className="text-2xl font-display text-agri-900 dark:text-agri-50 italic mb-2">{report.title}</h3>
+               <p className="text-xs text-gray-400 dark:text-slate-500 font-medium leading-relaxed uppercase tracking-tighter">{report.desc}</p>
+            </div>
+            
+            <button 
+              onClick={() => handleDownloadReport(report.type)}
+              className="mt-8 flex items-center justify-between p-5 bg-agri-50 dark:bg-slate-800/50 rounded-2xl group/btn hover:bg-agri-600 dark:hover:bg-agri-500 transition-all"
+            >
+               <span className="text-[10px] font-black uppercase tracking-widest text-agri-600 dark:text-agri-400 group-hover/btn:text-white">Descargar PDF</span>
+               <Download className="w-4 h-4 text-agri-400 group-hover/btn:text-white animate-bounce" />
+            </button>
+          </div>
+        ))}
+
+        {/* Info Card helper */}
+        <div className="bg-agri-900 dark:bg-slate-800 p-10 rounded-[3rem] text-white flex flex-col justify-center relative overflow-hidden h-80">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-4">Información</p>
+           <h3 className="text-3xl font-display italic leading-tight">Exporta registros oficiales</h3>
+           <p className="mt-4 text-sm text-white/60 leading-relaxed italic">Todos los reportes se generan filtrando automáticamente los datos de la temporada: <span className="text-agri-400 font-bold not-italic font-sans">{currentSeason?.nombre}</span></p>
+        </div>
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 };
 
 export default Reportes;

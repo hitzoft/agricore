@@ -9,19 +9,34 @@ import {
 import { useStore } from '../store/useStore';
 import { PagoSelector } from '../components/PagoSelector';
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  return new Intl.DateTimeFormat('es-MX', { 
+    day: '2-digit', 
+    month: 'long', 
+    year: 'numeric' 
+  }).format(date);
+};
+
 const NominaCaboPago = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const fromPath = (location.state as any)?.from || '/nomina';
+  const fromPath = (location.state as any)?.from || '/dashboard/nomina';
 
   const {
     cuadrillas,
+    huertas,
+    cabos,
     actualizarCuadrilla,
     confirmarPagoCuadrilla,
     addToast
   } = useStore(useShallow(state => ({
     cuadrillas: state.cuadrillas,
+    huertas: state.huertas,
+    cabos: state.cabos,
     actualizarCuadrilla: state.actualizarCuadrilla,
     confirmarPagoCuadrilla: state.confirmarPagoCuadrilla,
     addToast: state.addToast
@@ -31,6 +46,22 @@ const NominaCaboPago = () => {
     cuadrillas.find(c => c.id === id), 
     [cuadrillas, id]
   );
+
+  const displayNames = useMemo(() => {
+    if (!cuadrilla) return { cabo: 'Cargando...', huerta: 'Cargando...' };
+
+    const cabo = cabos.find(c => c.id === cuadrilla.caboId);
+    const huerta = huertas.find(h => h.id === cuadrilla.huertaId);
+    
+    // Si el ID guardado es en realidad el nombre (error que acabamos de corregir), lo usamos como respaldo
+    const fallbackCabo = (cuadrilla.caboId && (cuadrilla.caboId.length ?? 0) < 30) ? cuadrilla.caboId : 'No asignado';
+    const fallbackHuerta = (cuadrilla.huertaId && (cuadrilla.huertaId.length ?? 0) < 30) ? cuadrilla.huertaId : 'No especificada';
+
+    return {
+      cabo: cabo?.nombre || (cuadrilla.caboNombre !== 'Desconocido' ? cuadrilla.caboNombre : fallbackCabo),
+      huerta: huerta?.nombre || (cuadrilla.huerta !== 'Desconocida' ? cuadrilla.huerta : fallbackHuerta)
+    };
+  }, [cabos, huertas, cuadrilla]);
 
   const [editForm, setEditForm] = useState({
     personas: '',
@@ -98,13 +129,13 @@ const NominaCaboPago = () => {
 
   if (!cuadrilla) {
     return (
-      <div className="p-8 text-center">
-        <h2 className="text-xl font-bold text-gray-800">No se encontró el registro de asistencia</h2>
+      <div className="p-10 text-center bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl max-w-md mx-auto mt-20 transition-colors">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-agri-50 mb-4 tracking-tight">No se encontró el registro de asistencia</h2>
         <button 
           onClick={() => navigate(fromPath)}
-          className="mt-4 text-agri-600 font-medium hover:underline flex items-center gap-2 justify-center w-full"
+          className="text-agri-600 dark:text-agri-400 font-black text-xs uppercase tracking-widest hover:underline flex items-center gap-2 justify-center w-full"
         >
-          <ArrowLeft className="w-4 h-4" /> Volver
+          <ArrowLeft className="w-4 h-4" /> Volver a Nómina
         </button>
       </div>
     );
@@ -116,26 +147,30 @@ const NominaCaboPago = () => {
       <div className="flex items-center justify-between mb-6">
         <button 
           onClick={() => navigate(fromPath)}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 font-medium transition-colors group"
+          className="flex items-center gap-3 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white font-black text-[10px] uppercase tracking-widest transition-all group"
         >
-          <div className="p-2 rounded-lg bg-white border border-gray-200 group-hover:border-gray-300 shadow-sm">
-            <ChevronLeft className="w-5 h-5" />
+          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 group-hover:border-agri-200 dark:group-hover:border-slate-700 shadow-sm transition-all">
+            <ChevronLeft className="w-5 h-5 text-agri-600" />
           </div>
-          Volver
+          <span>Volver</span>
         </button>
         <div className="text-right">
           <p className="text-sm font-display text-agri-400 italic">Pago de Asistencia</p>
-          <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">{cuadrilla.cabo}</h1>
+          <h1 className="text-5xl md:text-6xl font-display text-gray-900 dark:text-agri-50 tracking-tight">{displayNames.cabo}</h1>
+          <p className="text-lg text-agri-600 dark:text-agri-400 font-bold mt-2 flex items-center justify-end gap-2">
+            <MapPin className="w-5 h-5 text-agri-500" />
+            {displayNames.huerta}
+          </p>
         </div>
       </div>
 
       {/* Locked Banner */}
       {isPagadaFinal && (
-        <div className="mb-6 flex items-center gap-4 p-5 bg-green-50 border border-green-200 rounded-2xl">
-          <div className="p-3 bg-green-100 rounded-xl text-green-600"><Lock className="w-6 h-6" /></div>
+        <div className="mb-6 flex items-center gap-4 p-5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-2xl">
+          <div className="p-3 bg-green-100 dark:bg-green-500 text-green-600 dark:text-white rounded-xl"><Lock className="w-6 h-6" /></div>
           <div>
-            <p className="font-black text-green-800 text-sm uppercase tracking-widest">Cuadrilla Liquidada — Solo Lectura</p>
-            <p className="text-green-600 text-xs font-medium mt-0.5">Esta asistencia fue marcada como pagada y no puede ser modificada.</p>
+            <p className="font-black text-green-800 dark:text-green-300 text-sm uppercase tracking-widest">Cuadrilla Liquidada — Solo Lectura</p>
+            <p className="text-green-600 dark:text-green-500 text-xs font-medium mt-0.5">Esta asistencia fue marcada como pagada y no puede ser modificada.</p>
           </div>
           <CheckCircle className="w-6 h-6 text-green-500 ml-auto shrink-0" />
         </div>
@@ -145,25 +180,26 @@ const NominaCaboPago = () => {
         {/* Left: Summary & Edit */}
         <div className="lg:col-span-2 space-y-6">
           {/* Main Summary Card */}
-          <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+          <div className="bg-white dark:bg-slate-800/50 rounded-3xl p-8 border border-gray-100 dark:border-slate-700/50 shadow-sm relative overflow-hidden transition-colors">
             <div className="relative z-10">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Estado de Pago</p>
+                  <p className="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Estado de Pago</p>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-black text-gray-900">${totalPagado.toLocaleString()}</span>
-                    <span className="text-xl font-bold text-gray-400">/ ${totalCalculado.toLocaleString()}</span>
+                    <span className="text-5xl font-black text-gray-900 dark:text-agri-50">${totalPagado.toLocaleString()}</span>
+                    <span className="text-xl font-bold text-gray-400 dark:text-slate-500">/ ${totalCalculado.toLocaleString()}</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-tight ${isPagadaFinal ? 'bg-green-100 text-green-700' : isLiquidado ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                    {isPagadaFinal ? '✓ Asistencia Pagada' : isLiquidado ? 'Pendiente de Confirmar' : 'Pago Parcial'}
+                  <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg ${isPagadaFinal ? 'bg-emerald-500 text-white shadow-emerald-500/20' : isLiquidado ? 'bg-blue-500 text-white shadow-blue-500/20' : 'bg-orange-500 text-white shadow-orange-500/20'}`}>
+                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    {isPagadaFinal ? 'Cuadrilla Pagada' : isLiquidado ? 'Pendiente de Confirmar' : 'Pago Parcial'}
                   </span>
-                  <p className="text-3xl font-black text-gray-900 mt-2">{Math.round(porc)}%</p>
+                  <p className="text-4xl font-black text-gray-900 dark:text-white mt-4 tracking-tighter leading-none">{Math.round(porc)}%</p>
                 </div>
               </div>
 
-              <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden shadow-inner mb-8">
+              <div className="w-full h-4 bg-gray-100 dark:bg-slate-700/50 rounded-full overflow-hidden shadow-inner mb-8">
                 <div 
                   className={`h-full transition-all duration-1000 ease-out ${isLiquidado ? 'bg-green-500' : 'bg-agri-500'}`}
                   style={{ width: `${Math.min(100, porc)}%` }}
@@ -171,18 +207,18 @@ const NominaCaboPago = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                <div className="bg-green-50/50 border border-green-100 p-5 rounded-2xl flex items-center gap-4">
-                  <div className="p-3 bg-green-100 text-green-600 rounded-xl"><Banknote className="w-6 h-6" /></div>
+                <div className="bg-green-50/50 dark:bg-green-400/5 border border-green-100 dark:border-green-400/10 p-5 rounded-2xl flex items-center gap-4 transition-colors">
+                  <div className="p-3 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-xl"><Banknote className="w-6 h-6" /></div>
                   <div>
-                    <p className="text-[10px] text-green-600 font-black uppercase tracking-widest">Efectivo</p>
-                    <p className="text-2xl font-black text-green-700">${efec.toLocaleString()}</p>
+                    <p className="text-[10px] text-green-600 dark:text-emerald-500 font-black uppercase tracking-widest leading-none mb-1.5">Efectivo Pagado</p>
+                    <p className="text-3xl font-display text-green-700 dark:text-emerald-400 leading-none tracking-tight">${efec.toLocaleString()}</p>
                   </div>
                 </div>
-                <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl flex items-center gap-4">
-                  <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><CreditCard className="w-6 h-6" /></div>
+                <div className="bg-blue-50/50 dark:bg-blue-400/5 border border-blue-100 dark:border-blue-400/10 p-5 rounded-2xl flex items-center gap-4 transition-colors">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl"><CreditCard className="w-6 h-6" /></div>
                   <div>
-                    <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Bancario</p>
-                    <p className="text-2xl font-black text-blue-700">${banc.toLocaleString()}</p>
+                    <p className="text-[10px] text-blue-600 dark:text-blue-500 font-black uppercase tracking-widest leading-none mb-1.5">Bancario Pagado</p>
+                    <p className="text-3xl font-display text-blue-700 dark:text-blue-400 leading-none tracking-tight">${banc.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -191,64 +227,73 @@ const NominaCaboPago = () => {
           </div>
 
           {/* Details & Edit Form */}
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-              <h3 className="font-black text-gray-900 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+            <div className="p-7 border-b border-gray-50 dark:border-slate-800 flex items-center justify-between bg-gray-50/30 dark:bg-slate-800/20">
+              <h4 className="text-lg font-display text-gray-900 dark:text-agri-50 flex items-center gap-3">
                 <Users className="w-5 h-5 text-gray-400" />
                 Desglose de la Cuadrilla
-              </h3>
-              <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{cuadrilla.fecha}</span>
+              </h4>
+              <span className="text-[10px] font-black text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-xl border border-gray-100 dark:border-slate-700 uppercase tracking-widest shadow-sm">{formatDate(cuadrilla.fecha)}</span>
             </div>
             
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-              {/* Context Info */}
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Ubicación y Origen</h4>
+                  <h4 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-4">Detalle de la Cuadrilla</h4>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-gray-700 font-bold">
-                      <MapPin className="w-5 h-5 text-agri-500" />
-                      <span>{cuadrilla.huerta}</span>
+                    <div className="flex items-center gap-4 text-gray-700 dark:text-agri-100 font-bold group">
+                      <div className="p-2.5 bg-agri-50 dark:bg-agri-500/10 rounded-2xl group-hover:scale-110 transition-transform">
+                        <MapPin className="w-5 h-5 text-agri-500" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.1em] leading-none mb-1">Huerta</span>
+                        <span>{displayNames.huerta}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 text-gray-700 font-bold">
-                      <Calendar className="w-5 h-5 text-agri-500" />
-                      <span>{cuadrilla.fecha || 'Semana ' + cuadrilla.semana}</span>
+                    <div className="flex items-center gap-3 text-gray-700 dark:text-agri-100 font-bold">
+                      <div className="p-1.5 bg-agri-50 dark:bg-agri-500/10 rounded-lg">
+                        <Users className="w-4 h-4 text-agri-500" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.1em] leading-none mb-1">Cabo</span>
+                        <span>{displayNames.cabo}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-gray-50">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Resumen de Costos</h4>
+                <div className="pt-6 border-t border-gray-50 dark:border-slate-700/50">
+                  <h4 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-4">Resumen de Costos</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Pago Personal ({editForm.personas} x ${editForm.tarifa})</span>
-                      <span className="font-bold text-gray-900">${(Number(editForm.personas) * Number(editForm.tarifa)).toLocaleString()}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Pago Personal ({editForm.personas} x ${editForm.tarifa})</span>
+                      <span className="font-bold text-gray-900 dark:text-agri-50">${(Number(editForm.personas) * Number(editForm.tarifa)).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Apoyo Flete</span>
-                      <span className="font-bold text-gray-900">${Number(editForm.flete).toLocaleString()}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Apoyo Flete</span>
+                      <span className="font-bold text-gray-900 dark:text-agri-50">${Number(editForm.flete).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Apoyo Comida</span>
-                      <span className="font-bold text-gray-900">${Number(editForm.comida).toLocaleString()}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Apoyo Comida</span>
+                      <span className="font-bold text-gray-900 dark:text-agri-50">${Number(editForm.comida).toLocaleString()}</span>
                     </div>
                     {Number(editForm.otrosGastos) > 0 && (
-                      <div className="flex justify-between text-sm text-orange-600">
+                      <div className="flex justify-between text-sm text-orange-600 dark:text-orange-400">
                         <span>{editForm.otrosGastosDesc || 'Otros Gastos'}</span>
                         <span className="font-bold">${Number(editForm.otrosGastos).toLocaleString()}</span>
                       </div>
                     )}
-                    <div className="flex justify-between pt-4 border-t border-gray-100 mt-4">
-                      <span className="text-lg font-black text-gray-900 uppercase tracking-tight">Total Bruto</span>
-                      <span className="text-2xl font-black text-gray-900">${totalCalculado.toLocaleString()}</span>
+                    <div className="flex justify-between pt-4 border-t border-gray-100 dark:border-slate-700/50 mt-4">
+                      <span className="text-lg font-black text-gray-900 dark:text-agri-50 uppercase tracking-tight">Total Bruto</span>
+                      <span className="text-2xl font-black text-gray-900 dark:text-agri-50">${totalCalculado.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Edit Inputs */}
-              <div className={`space-y-4 p-6 rounded-2xl border ${isPagadaFinal ? 'bg-gray-50 border-gray-100 opacity-60 pointer-events-none select-none' : 'bg-gray-50/50 border-gray-100'}`}>
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+              <div className={`space-y-4 p-6 rounded-2xl border ${isPagadaFinal ? 'bg-gray-50 dark:bg-slate-900/50 border-gray-100 dark:border-slate-800 opacity-60 pointer-events-none select-none' : 'bg-gray-50/50 dark:bg-slate-900/30 border-gray-100 dark:border-slate-700/50'}`}>
+                <h4 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                   {isPagadaFinal && <Lock className="w-3 h-3" />}
                   {isPagadaFinal ? 'Valores Bloqueados' : 'Ajustar Valores'}
                 </h4>
@@ -257,35 +302,35 @@ const NominaCaboPago = () => {
                     <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Personas</label>
                     <div className="relative">
                       <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input disabled={isPagadaFinal} type="number" value={editForm.personas} onChange={e => setEditForm({...editForm, personas: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed" />
+                      <input disabled={isPagadaFinal} type="number" value={editForm.personas} onChange={e => setEditForm({...editForm, personas: e.target.value})} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 dark:text-agri-50 outline-none disabled:bg-gray-50 dark:disabled:bg-slate-950 disabled:cursor-not-allowed transition-colors" />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Tarifa</label>
                     <div className="relative">
                       <CircleDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input disabled={isPagadaFinal} type="number" value={editForm.tarifa} onChange={e => setEditForm({...editForm, tarifa: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed" />
+                      <input disabled={isPagadaFinal} type="number" value={editForm.tarifa} onChange={e => setEditForm({...editForm, tarifa: e.target.value})} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 dark:text-agri-50 outline-none disabled:bg-gray-50 dark:disabled:bg-slate-950 disabled:cursor-not-allowed transition-colors" />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Flete</label>
                     <div className="relative">
                       <TrendingUp className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input disabled={isPagadaFinal} type="number" value={editForm.flete} onChange={e => setEditForm({...editForm, flete: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed" />
+                      <input disabled={isPagadaFinal} type="number" value={editForm.flete} onChange={e => setEditForm({...editForm, flete: e.target.value})} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 dark:text-agri-50 outline-none disabled:bg-gray-50 dark:disabled:bg-slate-950 disabled:cursor-not-allowed transition-colors" />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Comida</label>
                     <div className="relative">
                       <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input disabled={isPagadaFinal} type="number" value={editForm.comida} onChange={e => setEditForm({...editForm, comida: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed" />
+                      <input disabled={isPagadaFinal} type="number" value={editForm.comida} onChange={e => setEditForm({...editForm, comida: e.target.value})} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm font-bold focus:border-agri-500 dark:text-agri-50 outline-none disabled:bg-gray-50 dark:disabled:bg-slate-950 disabled:cursor-not-allowed transition-colors" />
                     </div>
                   </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Otros Gastos</label>
-                  <input disabled={isPagadaFinal} type="number" value={editForm.otrosGastos} onChange={e => setEditForm({...editForm, otrosGastos: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:border-agri-500 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed" />
-                  {Number(editForm.otrosGastos) > 0 && <input disabled={isPagadaFinal} type="text" placeholder="¿En qué se gastó?" value={editForm.otrosGastosDesc} onChange={e => setEditForm({...editForm, otrosGastosDesc: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm mt-1 focus:border-agri-500 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed" />}
+                  <input disabled={isPagadaFinal} type="number" value={editForm.otrosGastos} onChange={e => setEditForm({...editForm, otrosGastos: e.target.value})} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold focus:border-agri-500 dark:text-agri-50 outline-none disabled:bg-gray-50 dark:disabled:bg-slate-950 disabled:cursor-not-allowed transition-colors" />
+                  {Number(editForm.otrosGastos) > 0 && <input disabled={isPagadaFinal} type="text" placeholder="¿En qué se gastó?" value={editForm.otrosGastosDesc} onChange={e => setEditForm({...editForm, otrosGastosDesc: e.target.value})} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm mt-1 focus:border-agri-500 dark:text-agri-50 outline-none disabled:bg-gray-50 dark:disabled:bg-slate-950 disabled:cursor-not-allowed transition-colors" />}
                 </div>
               </div>
             </div>
@@ -294,14 +339,14 @@ const NominaCaboPago = () => {
 
         {/* Right: Payment Registration */}
         <div className="space-y-6">
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm sticky top-6">
+          <div className="bg-white dark:bg-slate-800/50 rounded-3xl p-6 border border-gray-100 dark:border-slate-700/50 shadow-sm sticky top-6 transition-colors">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 bg-agri-100 text-agri-600 rounded-xl">
+              <div className="p-2.5 bg-agri-100 dark:bg-agri-500/20 text-agri-600 dark:text-agri-400 rounded-xl">
                 <CircleDollarSign className="w-6 h-6" />
               </div>
               <div className="text-left">
-                <h3 className="font-black text-gray-900">Registro de Abonos</h3>
-                <p className="text-xs text-gray-500 font-medium">Captura los pagos realizados</p>
+                <h3 className="font-black text-gray-900 dark:text-agri-50">Registro de Abonos</h3>
+                <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">Captura los pagos realizados</p>
               </div>
             </div>
 
@@ -327,12 +372,12 @@ const NominaCaboPago = () => {
             )}
 
             {isPagadaFinal && (
-              <div className="mt-8 p-4 bg-green-50 border border-green-100 rounded-2xl flex flex-col items-center text-center animate-in zoom-in duration-300">
-                <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center mb-3 shadow-lg shadow-green-200">
+              <div className="mt-8 p-4 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/50 rounded-2xl flex flex-col items-center text-center animate-in zoom-in duration-300">
+                <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center mb-3 shadow-lg shadow-green-200 dark:shadow-none">
                   <Calendar className="w-6 h-6" />
                 </div>
-                <h4 className="font-bold text-green-800">Cabo Liquidado</h4>
-                <p className="text-xs text-green-600 font-medium mt-1">Se ha cubierto el pago de esta asistencia.</p>
+                <h4 className="font-bold text-green-800 dark:text-green-300">Cabo Liquidado</h4>
+                <p className="text-xs text-green-600 dark:text-green-500 font-medium mt-1">Se ha cubierto el pago de esta asistencia.</p>
               </div>
             )}
           </div>

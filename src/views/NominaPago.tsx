@@ -13,7 +13,7 @@ const NominaPago = () => {
   const { semana } = useParams<{ semana: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const fromPath = (location.state as any)?.from || '/nomina';
+  const fromPath = (location.state as any)?.from || '/dashboard/nomina';
 
   const {
     rayasSemanales,
@@ -64,8 +64,8 @@ const NominaPago = () => {
 
   if (!semana || rayasSem.length === 0) {
     return (
-      <div className="p-8 text-center">
-        <h2 className="text-xl font-bold text-gray-800">No se encontró información para la semana {semana}</h2>
+      <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl max-w-md mx-auto mt-20 transition-colors">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-agri-50">No se encontró información para la semana {semana}</h2>
         <button 
           onClick={() => navigate(fromPath)}
           className="mt-4 text-agri-600 font-medium hover:underline flex items-center gap-2 justify-center w-full"
@@ -82,16 +82,16 @@ const NominaPago = () => {
       <div className="flex items-center justify-between mb-6">
         <button 
           onClick={() => navigate(fromPath)}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 font-medium transition-colors group"
+          className="flex items-center gap-3 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white font-black text-[10px] uppercase tracking-widest transition-all group"
         >
-          <div className="p-2 rounded-lg bg-white border border-gray-200 group-hover:border-gray-300 shadow-sm">
-            <ChevronLeft className="w-5 h-5" />
+          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 group-hover:border-agri-200 dark:group-hover:border-slate-700 shadow-sm transition-all">
+            <ChevronLeft className="w-5 h-5 text-agri-600" />
           </div>
-          Volver
+          <span>Volver a Nómina</span>
         </button>
         <div className="text-right">
-          <p className="text-sm font-display text-agri-400 italic mb-1 leading-none">Nómina Semanal</p>
-          <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">{getDatesFromWeek(semana)}</h1>
+          <p className="text-[10px] font-black text-agri-400 dark:text-agri-500 uppercase tracking-widest mb-1 leading-none mr-1">Resumen de Liquidación</p>
+          <h1 className="text-5xl md:text-6xl font-display text-agri-900 dark:text-agri-50 tracking-tight">{getDatesFromWeek(semana)}</h1>
         </div>
       </div>
 
@@ -99,76 +99,76 @@ const NominaPago = () => {
         {/* Left Column: Summary & Workers */}
         <div className="lg:col-span-2 space-y-6">
           {/* Main Summary Card */}
-          <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden transition-colors">
             <div className="relative z-10">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
                 <div>
                   <p className="text-[10px] font-bold text-agri-400 uppercase tracking-widest mb-1.5 leading-none">Total Liquidado</p>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-display text-agri-900 leading-none">${totalPagado.toLocaleString()}</span>
-                    <span className="text-xl font-bold text-agri-400">/ ${totalNomina.toLocaleString()}</span>
+                    <span className="text-6xl font-display text-agri-900 dark:text-agri-50 leading-none tracking-tight">${totalPagado.toLocaleString()}</span>
+                    <span className="text-xl font-bold text-agri-400/60 dark:text-slate-600">/ ${totalNomina.toLocaleString()}</span>
                   </div>
-                  <p className="mt-3 text-sm font-bold text-orange-600 flex items-center gap-1.5">
-                    <Banknote className="w-4 h-4 opacity-70" /> 
-                    Faltante: ${pendiente.toLocaleString()}
+                  <p className="mt-4 text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest bg-orange-50 dark:bg-orange-500/10 px-4 py-2 rounded-xl inline-flex items-center gap-2 border border-orange-100/50 dark:border-orange-500/20">
+                    <Banknote className="w-4 h-4" /> 
+                    Pendiente por pagar: ${pendiente.toLocaleString()}
                   </p>
                 </div>
                 </div>
                 <div className="flex flex-col items-end">
-                  <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-sm ${isPagada ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}`}>
+                  <div className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 shadow-lg ${isPagada ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-orange-500 text-white shadow-orange-500/20'}`}>
                     <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                    {isPagada ? 'Cerrada' : 'En Liquidación'}
+                    {isPagada ? 'Nómina Pagada' : 'En Liquidación'}
                   </div>
-                  <p className="text-4xl font-black text-gray-900 mt-4 tracking-tighter">{Math.round(porc)}%</p>
+                  <p className="text-5xl font-black text-gray-900 dark:text-white mt-8 tracking-tighter leading-none">{Math.round(porc)}%</p>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden shadow-inner mb-8">
+              <div className="w-full h-5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner mb-10 transition-colors">
                 <div 
-                  className={`h-full transition-all duration-1000 ease-out ${totalPagado >= totalNomina ? 'bg-green-500' : 'bg-agri-500'}`}
+                  className={`h-full transition-all duration-1000 ease-out shadow-lg ${totalPagado >= totalNomina ? 'bg-emerald-400' : 'bg-agri-500'}`}
                   style={{ width: `${Math.min(100, porc)}%` }}
                 />
               </div>
 
               {/* Funding Breakdown */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white/50 border border-green-100 p-5 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all">
-                  <div className="p-3 bg-green-500 text-white rounded-xl shadow-lg shadow-green-100">
-                    <Banknote className="w-6 h-6" />
+                <div className="bg-gray-50/50 dark:bg-emerald-500/5 border border-emerald-100/50 dark:border-emerald-500/20 p-6 rounded-[2rem] flex items-center gap-5 hover:shadow-xl transition-all group">
+                  <div className="p-4 bg-emerald-500 text-white rounded-2xl shadow-xl shadow-emerald-500/20 group-hover:scale-110 transition-transform">
+                    <Banknote className="w-7 h-7" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-agri-400 font-bold uppercase tracking-widest mb-1">Efectivo Acumulado</p>
-                    <p className="text-2xl font-display text-green-600">${efec.toLocaleString()}</p>
+                    <p className="text-[10px] text-emerald-600/60 dark:text-emerald-500/60 font-black uppercase tracking-widest mb-1.5 leading-none">Efectivo Acumulado</p>
+                    <p className="text-3xl font-display text-emerald-600 dark:text-emerald-400 leading-none">${efec.toLocaleString()}</p>
                   </div>
                 </div>
-                <div className="bg-white/50 border border-blue-100 p-5 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all">
-                  <div className="p-3 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-100">
-                    <CreditCard className="w-6 h-6" />
+                <div className="bg-gray-50/50 dark:bg-blue-500/5 border border-blue-100/50 dark:border-blue-500/20 p-6 rounded-[2rem] flex items-center gap-5 hover:shadow-xl transition-all group">
+                  <div className="p-4 bg-blue-500 text-white rounded-2xl shadow-xl shadow-blue-500/20 group-hover:scale-110 transition-transform">
+                    <CreditCard className="w-7 h-7" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-agri-400 font-bold uppercase tracking-widest mb-1">Transferencias</p>
-                    <p className="text-2xl font-display text-blue-600">${banc.toLocaleString()}</p>
+                    <p className="text-[10px] text-blue-600/60 dark:text-blue-500/60 font-black uppercase tracking-widest mb-1.5 leading-none">Transferencias</p>
+                    <p className="text-3xl font-display text-blue-600 dark:text-blue-400 leading-none">${banc.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
             </div>
             
             {/* Decorative background element */}
-            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-gray-50 rounded-full blur-3xl opacity-50 z-0" />
+            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-agri-50 dark:bg-slate-800 rounded-full blur-3xl opacity-50 z-0 transition-colors" />
           </div>
 
           {/* Worker Breakdown List */}
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-              <h3 className="font-black text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-gray-400" />
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+            <div className="p-7 border-b border-gray-50 dark:border-slate-800 flex items-center justify-between bg-gray-50/30 dark:bg-slate-800/20">
+              <h3 className="text-lg font-display text-gray-900 dark:text-agri-50 flex items-center gap-3">
+                <Users className="w-6 h-6 text-agri-500 dark:text-agri-400" />
                 Desglose por Trabajador
               </h3>
-              <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{rayasSem.length} Personas</span>
+              <span className="text-[10px] font-black text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-xl border border-gray-100 dark:border-slate-700 uppercase tracking-widest shadow-sm transition-all">{rayasSem.length} Personas</span>
             </div>
-            <div className="divide-y divide-gray-50/50 max-h-[500px] overflow-y-auto custom-scrollbar">
+            <div className="divide-y divide-gray-50/50 dark:divide-slate-800/50 max-h-[600px] overflow-y-auto custom-scrollbar">
               {rayasSem.map(r => {
                 const tot = calcularTotalRaya(r);
                 const dias = Object.values(r.asistencia).filter((d: any) => d.asistio).length;
@@ -176,28 +176,28 @@ const NominaPago = () => {
                 const extras = tot - base;
                 
                 return (
-                  <div key={r.id} className="group p-5 hover:bg-agri-50/30 transition-all border-l-4 border-transparent hover:border-agri-500">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center font-black text-gray-400 text-lg border border-gray-100 group-hover:bg-white group-hover:scale-110 transition-all">
+                  <div key={r.id} className="group p-6 hover:bg-agri-50/30 dark:hover:bg-slate-800/40 transition-all border-l-4 border-transparent hover:border-agri-500">
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center font-black text-agri-600 dark:text-agri-400 text-xl border border-gray-100 dark:border-slate-700 group-hover:bg-white dark:group-hover:bg-slate-900 group-hover:scale-110 transition-all shadow-inner">
                           {r.empleadoNombre.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-bold text-agri-900 text-lg leading-tight group-hover:text-agri-600 transition-colors">{r.empleadoNombre}</p>
-                          <p className="text-[10px] text-agri-400 font-bold uppercase tracking-widest mt-1">{r.puesto} • {dias} JORNALES</p>
+                          <p className="text-xl font-bold text-agri-900 dark:text-agri-50 leading-tight group-hover:text-agri-600 dark:group-hover:text-agri-400 transition-colors tracking-tight">{r.empleadoNombre}</p>
+                          <p className="text-[10px] text-gray-400 dark:text-slate-500 font-black uppercase tracking-[0.2em] mt-1.5 opacity-80">{r.puesto} • {dias} JORNALES</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-display text-agri-900 tracking-tight">${tot.toLocaleString()}</p>
-                        <p className={`text-[9px] font-bold uppercase tracking-widest ${extras > 0 ? 'text-orange-500' : 'text-agri-300'}`}>
-                          {extras > 0 ? `Incluye $${extras.toLocaleString()} Extras` : 'Sin Extras'}
+                        <p className="text-3xl font-display text-gray-900 dark:text-white tracking-tight leading-none">${tot.toLocaleString()}</p>
+                        <p className={`text-[9px] font-black uppercase tracking-widest mt-2 px-2 py-0.5 rounded-lg border inline-block ${extras > 0 ? 'text-orange-500 border-orange-100 dark:border-orange-950/30 bg-orange-50 dark:bg-orange-950/20' : 'text-agri-300 border-slate-50 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-800/10'}`}>
+                          {extras > 0 ? `+ $${extras.toLocaleString()} Extras` : 'Sin Extras'}
                         </p>
                       </div>
                     </div>
                     
                     {/* Detail pills */}
-                    <div className="flex flex-wrap gap-2">
-                      <div className="px-3 py-1 rounded-full bg-white border border-gray-100 text-[10px] font-bold text-gray-500 shadow-sm flex items-center gap-1.5">
+                    <div className="flex flex-wrap gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                      <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 text-[10px] font-black text-gray-400 dark:text-slate-500 shadow-sm flex items-center gap-2 transition-all">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                         Base: ${base.toLocaleString()}
                       </div>

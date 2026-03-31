@@ -6,7 +6,7 @@ import {
   ChevronRight, ChevronLeft, Download,
   TrendingUp, CircleDollarSign, Banknote,
   Hash, RefreshCw, CheckCircle2,
-  Lock, Edit3, X, User, HelpCircle, HardHat,
+  Lock, Edit3, X, HelpCircle, HardHat,
   ArrowLeft
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -14,6 +14,7 @@ import type { DiaSemana } from '../store/useStore';
 import { generatePayrollPDF } from '../utils/reportGenerator';
 import ConfirmModal from '../components/ConfirmModal';
 import { getWeekFromDate, getCurrentWeek, getDatesFromWeek } from '../utils/dateUtils';
+import { useAuth } from '../context/AuthContext';
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -121,20 +122,24 @@ const Nomina = () => {
   const historialSemanas = useMemo(() => {
     // Gather all unique weeks from closed rayas OR any cuadrilla
     const semanasSet = new Set<string>();
-    rayasSemanales.filter(r => r.cerrada).forEach(r => semanasSet.add(r.semana));
-    cuadrillas.forEach(c => { if (c.semana) semanasSet.add(c.semana); });
+    rayasSemanales
+      .filter(r => r.cerrada && (!activeSeasonId || r.seasonId === activeSeasonId))
+      .forEach(r => semanasSet.add(r.semana));
+    cuadrillas
+      .filter(c => !activeSeasonId || c.seasonId === activeSeasonId)
+      .forEach(c => { if (c.semana) semanasSet.add(c.semana); });
 
     return Array.from(semanasSet).sort().reverse().map(sem => {
       // Nómina semanal
-      const rayasSem = rayasSemanales.filter(r => r.semana === sem && r.cerrada);
+      const rayasSem = rayasSemanales.filter(r => r.semana === sem && r.cerrada && (!activeSeasonId || r.seasonId === activeSeasonId));
       const totalNomina = rayasSem.reduce((s, r) => s + calcularTotalRaya(r), 0);
-      const pagoData = pagosNominaSemanal.find(p => p.semana === sem);
+      const pagoData = pagosNominaSemanal.find(p => p.semana === sem && (!activeSeasonId || p.seasonId === activeSeasonId));
       const nominaPagado = pagoData?.totalPagado || 0;
       const nominaEfectivo = pagoData?.pagos.filter(p => p.metodo === 'Efectivo').reduce((s, p) => s + p.monto, 0) || 0;
       const nominaBanco = pagoData?.pagos.filter(p => p.metodo === 'Cuenta').reduce((s, p) => s + p.monto, 0) || 0;
 
       // Cuadrillas
-      const cuadrillasSem = cuadrillas.filter(c => c.semana === sem);
+      const cuadrillasSem = cuadrillas.filter(c => c.semana === sem && (!activeSeasonId || c.seasonId === activeSeasonId));
       const totalCuadrillas = cuadrillasSem.reduce((s, c) => s + (c.personas * c.tarifa) + c.flete + c.comida + c.otrosGastos, 0);
       const cuadrillasPagado = cuadrillasSem.reduce((s, c) => s + (c.pagos?.reduce((ps, p) => ps + p.monto, 0) || 0), 0);
       const cuadrillasEfectivo = cuadrillasSem.reduce((s, c) => s + (c.pagos?.filter(p => p.metodo === 'Efectivo').reduce((ps, p) => ps + p.monto, 0) || 0), 0);
@@ -160,16 +165,18 @@ const Nomina = () => {
         hasNomina: rayasSem.length > 0,
       };
     });
-  }, [rayasSemanales, cuadrillas, pagosNominaSemanal]);
+  }, [rayasSemanales, cuadrillas, pagosNominaSemanal, activeSeasonId]);
 
   const [formCuadrilla, setFormCuadrilla] = useState({ caboId: '', huertaId: '', personas: '', tarifa: '', flete: '', comida: '', otrosGastos: '', otrosGastosDesc: '', fecha: new Date().toISOString().split('T')[0] });
   const [formExtras, setFormExtras] = useState({ horasExtra: '', bonoExtra: '' });
+
+  const { userMetadata } = useAuth();
 
   const handleDownloadReport = async () => {
     if (rayasActuales.length === 0) return addToast('No hay datos para generar el reporte de esta semana.', 'warning');
     try {
       addToast(`Generando ${isCerrada ? 'Reporte' : 'Pre-nómina'}...`, 'info');
-      await generatePayrollPDF(semanaSeleccionada, rayasActuales);
+      await generatePayrollPDF(semanaSeleccionada, rayasActuales, userMetadata?.empresa);
       addToast('Reporte generado exitosamente.', 'success');
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -181,9 +188,14 @@ const Nomina = () => {
     e.preventDefault();
     if (!formCuadrilla.caboId || !formCuadrilla.huertaId) return addToast('Debe seleccionar Cabo y Huerta', 'error');
     const semanaCalc = getWeekFromDate(formCuadrilla.fecha);
+    const caboObj = cabos.find(c => c.id === formCuadrilla.caboId);
+    const huertaObj = huertas.find(h => h.id === formCuadrilla.huertaId);
+
     addCuadrilla({ 
-      cabo: formCuadrilla.caboId, 
-      huerta: formCuadrilla.huertaId, 
+      caboId: formCuadrilla.caboId,
+      caboNombre: caboObj?.nombre || 'Desconocido',
+      huertaId: formCuadrilla.huertaId,
+      huerta: huertaObj?.nombre || 'Desconocida',
       personas: Number(formCuadrilla.personas), 
       tarifa: Number(formCuadrilla.tarifa), 
       flete: Number(formCuadrilla.flete), 
@@ -233,7 +245,7 @@ const Nomina = () => {
           {view === 'list' && (
             <button 
               onClick={() => setView('grid')}
-              className="p-2.5 bg-white rounded-2xl shadow-sm border border-agri-100 text-agri-600 hover:bg-agri-50 transition-all active:scale-90"
+              className="p-2.5 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-agri-100 dark:border-slate-800 text-agri-600 hover:bg-agri-50 dark:hover:bg-slate-800 transition-all active:scale-90"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -242,7 +254,7 @@ const Nomina = () => {
             <h1 className="title-primary text-5xl md:text-6xl">
               {view === 'grid' ? 'Nómina' : nominaConfig[activeTab].label}
             </h1>
-            <p className="subtitle-secondary !text-sm !dark:text-white">
+            <p className="subtitle-secondary !text-sm !text-slate-500 dark:!text-slate-400">
               {view === 'grid' 
                 ? 'Gestión de cuadrillas y nómina semanal de trabajadores de campo.' 
                 : nominaConfig[activeTab].desc}
@@ -265,7 +277,7 @@ const Nomina = () => {
               <>
                 <button 
                   onClick={handleDownloadReport} 
-                  className="bg-white border-2 border-agri-100 text-agri-700 hover:bg-agri-50 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95"
+                  className="bg-white dark:bg-slate-900 border-2 border-agri-100 dark:border-slate-800 text-agri-700 dark:text-agri-300 hover:bg-agri-50 dark:hover:bg-slate-800 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95"
                 >
                   <Download className="w-4 h-4" />
                   <span>{isCerrada ? 'Reporte' : 'Pre-nómina'}</span>
@@ -305,16 +317,16 @@ const Nomina = () => {
               <button
                 key={tab}
                 onClick={() => selectSection(tab)}
-                className="group relative bg-white p-8 rounded-[2.5rem] border border-agri-100 shadow-sm hover:shadow-xl hover:shadow-agri-600/5 hover:-translate-y-1 transition-all duration-300 text-left overflow-hidden active:scale-[0.98]"
+                className="group relative bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-agri-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-agri-600/5 hover:-translate-y-1 transition-all duration-300 text-left overflow-hidden active:scale-[0.98]"
               >
                 <div className={`w-14 h-14 ${config.color} rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-500 shadow-lg shadow-inner`}>
                   <Icon className="w-7 h-7" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-display text-agri-900 mb-1 group-hover:text-agri-600 transition-colors">{config.label}</h3>
+                  <h3 className="text-2xl font-display text-agri-900 dark:text-agri-50 mb-1 group-hover:text-agri-600 transition-colors">{config.label}</h3>
                   <p className="text-agri-400 text-sm leading-snug">{config.desc}</p>
                 </div>
-                <div className="absolute top-8 right-8 p-2 rounded-xl bg-agri-50 text-agri-400 group-hover:bg-agri-600 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0">
+                <div className="absolute top-8 right-8 p-2 rounded-xl bg-agri-50 dark:bg-slate-800 text-agri-400 group-hover:bg-agri-600 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0">
                   <ChevronRight className="w-4 h-4" />
                 </div>
               </button>
@@ -323,15 +335,15 @@ const Nomina = () => {
         </div>
       ) : (
         /* LIST VIEW CONTENT */
-        <div className="bg-white rounded-[2.5rem] shadow-sm border border-agri-100/50 overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-agri-100/50 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
           {/* Controls bar */}
-          <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/50">
+          <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/50 dark:bg-slate-800/50">
             <div className="flex items-center gap-3">
                <div className={`p-2 rounded-xl ${nominaConfig[activeTab].color} text-white`}>
                  {React.createElement(nominaConfig[activeTab].icon, { className: 'w-4 h-4' })}
                </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-black text-agri-900 uppercase tracking-[0.1em]">{activeTab === 'Rayas' ? 'Control de Asistencia' : activeTab}</span>
+                  <span className="text-sm font-black text-gray-900 dark:text-gray-100 uppercase tracking-[0.1em]">{activeTab === 'Rayas' ? 'Control de Asistencia' : activeTab}</span>
                   {activeTab === 'Rayas' && (
                     <p className="text-[9px] font-bold text-agri-600/60 uppercase tracking-widest leading-none mt-1 italic hidden sm:block">
                       Días trabajados, horas extra y bonos
@@ -357,18 +369,18 @@ const Nomina = () => {
                       (input as any).showPicker();
                     }
                   }}
-                  className="relative flex items-center gap-3 px-4 py-2 rounded-2xl border-2 border-transparent bg-white shadow-[0_4px_12px_-2px_rgba(0,0,0,0.05)] hover:shadow-lg hover:border-agri-100 transition-all duration-300 cursor-pointer overflow-hidden"
+                  className="relative flex items-center gap-3 px-4 py-2 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.05)] hover:shadow-lg dark:hover:border-slate-700 hover:border-agri-100 dark:hover:border-agri-800 transition-all duration-300 cursor-pointer overflow-hidden"
                 >
-                  <div className="p-1.5 bg-agri-50 rounded-lg text-agri-600 shrink-0">
+                  <div className="p-1.5 bg-agri-50 dark:bg-slate-800 rounded-lg text-agri-600 shrink-0">
                     <Calendar className="w-4 h-4" />
                   </div>
                   <div className="flex flex-col min-w-[170px]">
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-0.5">Semana</span>
+                    <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-0.5">Semana</span>
                     <input 
                       type="week" 
                       value={semanaSeleccionada} 
                       onChange={e => setSemanaSeleccionada(e.target.value)}
-                      className="text-sm border-none outline-none bg-transparent font-black text-gray-900 focus:ring-0 cursor-pointer p-0 h-5 w-full pr-2" 
+                      className="text-sm border-none outline-none bg-transparent font-black text-gray-900 dark:text-gray-100 focus:ring-0 cursor-pointer p-0 h-5 w-full pr-2" 
                     />
                   </div>
                 </label>
@@ -377,26 +389,26 @@ const Nomina = () => {
               {activeTab === 'Rayas' && rayasActuales.length > 0 && !isCerrada && (
                 <div className="relative group/refresh flex items-center gap-2">
                   <button onClick={() => generarNominaActiva(semanaSeleccionada)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-2xl border-2 border-agri-100 bg-white text-agri-700 hover:bg-agri-50 hover:border-agri-200 shadow-sm text-xs font-black uppercase tracking-wider transition-all active:scale-95">
+                    className="flex items-center gap-2 px-4 py-2 rounded-2xl border-2 border-agri-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-agri-700 dark:text-slate-400 hover:bg-agri-50 dark:hover:bg-slate-800 hover:border-agri-200 dark:hover:border-slate-700 shadow-sm text-xs font-black uppercase tracking-wider transition-all active:scale-95">
                     <RefreshCw className="w-4 h-4" />
                     <span className="hidden sm:inline">Actualizar Personal</span>
                   </button>
                   
-                  <div className="p-1.5 bg-gray-100/50 text-gray-400 rounded-lg hover:bg-agri-50 hover:text-agri-600 transition-colors cursor-help group/help">
+                  <div className="p-1.5 bg-gray-100/50 dark:bg-slate-800/50 text-gray-400 dark:text-slate-500 rounded-lg hover:bg-agri-50 dark:hover:bg-slate-800 hover:text-agri-600 transition-colors cursor-help group/help">
                     <HelpCircle className="w-4 h-4" />
                     
                     {/* Tooltip para el botón de ayuda (?) */}
-                    <div className="absolute right-0 top-12 w-64 bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 z-50 opacity-0 invisible group-hover/help:opacity-100 group-hover/help:visible transition-all duration-300 translate-y-2 group-hover/help:translate-y-0 text-left pointer-events-none">
-                      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-50">
-                        <div className="p-1.5 bg-agri-50 rounded-lg text-agri-600">
+                    <div className="absolute right-0 top-12 w-64 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-2xl rounded-2xl p-4 z-50 opacity-0 invisible group-hover/help:opacity-100 group-hover/help:visible transition-all duration-300 translate-y-2 group-hover/help:translate-y-0 text-left pointer-events-none">
+                      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-50 dark:border-slate-800/50">
+                        <div className="p-1.5 bg-agri-50 dark:bg-slate-800 rounded-lg text-agri-600">
                           <RefreshCw className="w-3 h-3" />
                         </div>
-                        <p className="text-[10px] font-black text-agri-600 uppercase tracking-widest">Sincronizar Plantilla</p>
+                        <p className="text-[10px] font-black text-agri-600 dark:text-agri-400 uppercase tracking-widest">Sincronizar Plantilla</p>
                       </div>
-                      <p className="text-[10px] font-bold text-gray-900 leading-tight">
+                      <p className="text-[10px] font-bold text-gray-900 dark:text-slate-300 leading-tight">
                         Este botón importa a todos los empleados marcados como <span className="text-agri-600">"Activos"</span> en el catálogo para esta semana.
                       </p>
-                      <p className="text-[9px] text-gray-400 font-medium leading-tight mt-2">
+                      <p className="text-[9px] text-gray-400 dark:text-slate-500 font-medium leading-tight mt-2">
                         Úsalo si agregaste empleados nuevos o si la lista está vacía. No borrará las asistencias ya marcadas.
                       </p>
                     </div>
@@ -404,7 +416,7 @@ const Nomina = () => {
                 </div>
               )}
               {activeTab === 'Rayas' && isCerrada && (
-                <button onClick={() => navigate(`/nomina/pago/${semanaSeleccionada}`, { state: { from: window.location.pathname } })}
+                <button onClick={() => navigate(`/dashboard/nomina/pago/${semanaSeleccionada}`, { state: { from: window.location.pathname } })}
                   className="flex items-center gap-2 px-5 py-2 rounded-2xl bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-100 text-xs font-black uppercase tracking-wider transition-all active:scale-95">
                   <CircleDollarSign className="w-4 h-4" />
                   <span className="hidden sm:inline">Pagar Nómina</span>
@@ -420,30 +432,30 @@ const Nomina = () => {
           {activeTab === 'Cuadrillas' && (
             <div className="p-6">
               {cuadrillasActuales.length > 0 && (
-                <div className="bg-white border border-gray-100 rounded-3xl p-6 mb-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700/50 rounded-3xl p-6 mb-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-2xl bg-purple-50 text-purple-600">
+                    <div className="p-3 rounded-2xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
                       <Users className="w-6 h-6" />
                     </div>
                     <div>
-                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Actividad de Semana</p>
-                      <h2 className="text-xl font-black text-gray-900">{getDatesFromWeek(semanaSeleccionada)}</h2>
+                      <p className="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">Actividad de Semana</p>
+                      <h2 className="text-xl font-black text-gray-900 dark:text-agri-50">{getDatesFromWeek(semanaSeleccionada)}</h2>
                     </div>
                   </div>
                   <div className="flex items-center gap-8">
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Jornadas</p>
-                      <p className="text-lg font-black text-gray-900">{cuadrillasActuales.length}</p>
+                      <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Jornadas</p>
+                      <p className="text-lg font-black text-gray-900 dark:text-agri-50">{cuadrillasActuales.length}</p>
                     </div>
-                    <div className="w-px h-10 bg-gray-100 hidden sm:block" />
+                    <div className="w-px h-10 bg-gray-100 dark:bg-slate-800 hidden sm:block" />
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Estimado</p>
-                      <p className="text-lg font-black text-agri-600">${calcularTotalCuadrillas().global.toLocaleString()}</p>
+                      <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Total Estimado</p>
+                      <p className="text-lg font-black text-agri-600 dark:text-agri-400">${calcularTotalCuadrillas().global.toLocaleString()}</p>
                     </div>
-                    <div className="w-px h-10 bg-gray-100 hidden sm:block" />
+                    <div className="w-px h-10 bg-gray-100 dark:bg-slate-800 hidden sm:block" />
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Pagado</p>
-                      <p className="text-lg font-black text-green-600">${calcularTotalCuadrillas().pagado.toLocaleString()}</p>
+                      <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Pagado</p>
+                      <p className="text-lg font-black text-green-600 dark:text-green-400">${calcularTotalCuadrillas().pagado.toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
@@ -475,15 +487,15 @@ const Nomina = () => {
                     return (
                       <div
                         key={c.id}
-                        onClick={() => navigate(`/nomina/cabo-pago/${c.id}`, { state: { from: window.location.pathname } })}
-                        className="group bg-white border border-gray-100 rounded-3xl overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
+                        onClick={() => navigate(`/dashboard/nomina/cabo-pago/${c.id}`, { state: { from: window.location.pathname } })}
+                        className="group bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700/50 rounded-3xl overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
                       >
                         <div className={`h-1.5 w-full ${statusColor.bar}`} />
                         <div className="p-5 flex-1 flex flex-col">
                           <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h3 className="text-lg font-black text-gray-900 group-hover:text-agri-600 transition-colors">{c.cabo}</h3>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formatDate(c.fecha)}</p>
+                                <h3 className="text-lg font-black text-gray-900 dark:text-agri-50 group-hover:text-agri-600 transition-colors">{c.caboNombre}</h3>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">{formatDate(c.fecha)}</p>
                             </div>
                             <div className="flex items-center gap-1.5 group/status relative">
                               <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-widest ${statusColor.badge}`}>
@@ -535,7 +547,7 @@ const Nomina = () => {
                           <div className="mb-4 mt-auto">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">COSTO</p>
                             <div className="flex items-baseline gap-1.5">
-                                <span className="text-3xl font-black text-gray-900">${totalDiario.toLocaleString()}</span>
+                                <span className="text-3xl font-black text-gray-900 dark:text-agri-50">${totalDiario.toLocaleString()}</span>
                                 <span className="text-xs font-bold text-gray-400">total</span>
                             </div>
                             <div className="flex items-center gap-2 mt-2">
@@ -587,20 +599,20 @@ const Nomina = () => {
           {activeTab === 'Rayas' && (
             <div>
               {rayasActuales.length > 0 && (
-                <div className="bg-white border border-gray-100 rounded-3xl p-6 mb-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700/50 rounded-3xl p-6 mb-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="p-3 rounded-2xl bg-agri-50 text-agri-600">
                       <Calendar className="w-6 h-6" />
                     </div>
                     <div>
-                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Actividad de Semana</p>
-                      <h2 className="text-xl font-black text-gray-900">{getDatesFromWeek(semanaSeleccionada)}</h2>
+                      <p className="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">Actividad de Semana</p>
+                      <h2 className="text-xl font-black text-gray-900 dark:text-agri-50">{getDatesFromWeek(semanaSeleccionada)}</h2>
                     </div>
                   </div>
                   <div className="flex items-center gap-8">
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Jornales</p>
-                      <p className="text-lg font-black text-gray-900">{rayasActuales.length}</p>
+                      <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Jornales</p>
+                      <p className="text-lg font-black text-gray-900 dark:text-agri-50">{rayasActuales.length}</p>
                     </div>
                     <div className="w-px h-10 bg-gray-100 hidden sm:block" />
                     <div className="text-right">
@@ -645,8 +657,8 @@ const Nomina = () => {
                     </div>
                     <div className="w-px h-10 bg-gray-100 hidden sm:block" />
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Estado</p>
-                      <p className={`text-sm font-black uppercase tracking-widest ${isCerrada ? 'text-green-600' : 'text-orange-500'}`}>
+                      <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Estado</p>
+                      <p className={`text-sm font-black uppercase tracking-widest ${isCerrada ? 'text-green-600 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'}`}>
                         {isCerrada ? 'Cerrada' : 'EN CURSO'}
                       </p>
                     </div>
@@ -666,20 +678,20 @@ const Nomina = () => {
                   </div>
                 ) : (
                   <>
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                    <thead className="text-gray-500 font-black border-b border-gray-100 text-[10px] uppercase tracking-[0.2em] relative z-20">
-                      <tr className="bg-white/80 backdrop-blur-md sticky top-0">
-                        <th className="px-6 py-5 sticky left-0 bg-white/95 backdrop-blur-md z-30 border-r border-gray-100 w-72 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                    <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
+                    <thead className="text-gray-500 dark:text-slate-400 font-black border-b border-gray-100 dark:border-slate-800 text-[10px] uppercase tracking-[0.2em] relative z-20">
+                      <tr className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 transition-colors">
+                        <th className="px-6 py-5 sticky left-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-30 border-r border-gray-100 dark:border-slate-800 w-72 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] dark:shadow-none transition-colors">
                           Nombre
                         </th>
                         {diasHeader.map(d => (
-                          <th key={d} className="px-2 py-5 text-center min-w-[80px] border-r border-gray-100">
+                          <th key={d} className="px-2 py-5 text-center min-w-[80px] border-r border-gray-100 dark:border-slate-800 transition-colors">
                             <div className="flex flex-col items-center gap-1.5">
-                              <span className="text-gray-400">{d}</span>
+                              <span className="text-gray-400 dark:text-slate-500 font-black">{d}</span>
                               {!isCerrada && (
                                 <button 
                                   onClick={() => { setAsistenciaMasiva(semanaSeleccionada, d, true); addToast(`Asistencia marcada para todos`, 'success'); }}
-                                  className="p-1 hover:bg-agri-50 rounded-lg text-agri-500 transition-all hover:scale-110 active:scale-95 bg-white border border-gray-100 shadow-sm"
+                                  className="p-1 hover:bg-agri-50 dark:hover:bg-slate-800 rounded-lg text-agri-500 dark:text-agri-400 transition-all hover:scale-110 active:scale-95 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm"
                                   title="Marcar todos"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -688,23 +700,23 @@ const Nomina = () => {
                             </div>
                           </th>
                         ))}
-                        <th className="px-8 py-5 text-right font-black text-agri-600 bg-white/80 backdrop-blur-md">
+                        <th className="px-8 py-5 text-right font-black text-agri-600 dark:text-agri-400 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md transition-colors">
                           TOTAL SEMANA
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-gray-50 dark:divide-slate-800 transition-colors">
                        {paginatedRayas.map(r => (
                          <tr key={r.id} 
-                           className={`group transition-all ${isCerrada ? 'hover:bg-agri-50/50 cursor-pointer' : 'hover:bg-gray-50/30'}`}
-                           onClick={() => isCerrada && navigate(`/nomina/pago/${semanaSeleccionada}`, { state: { from: window.location.pathname } })}
+                           className={`group transition-all ${isCerrada ? 'hover:bg-agri-50/50 dark:hover:bg-slate-800/50 cursor-pointer' : 'hover:bg-gray-50/30 dark:hover:bg-slate-800/20'}`}
+                           onClick={() => isCerrada && navigate(`/dashboard/nomina/pago/${semanaSeleccionada}`, { state: { from: window.location.pathname } })}
                          >
-                          <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-inherit z-10 border-r border-gray-100 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] transition-colors">
+                          <td className="px-6 py-4 sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-gray-50 dark:group-hover:bg-slate-800/60 z-10 border-r border-gray-100 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] dark:shadow-none transition-colors">
                             <div className="flex flex-col">
-                              <p className="font-black text-gray-900 leading-tight mb-1">{r.empleadoNombre}</p>
+                              <p className="font-black text-gray-900 dark:text-agri-50 leading-tight mb-1">{r.empleadoNombre}</p>
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">{r.puesto}</span>
-                                <span className="text-xs font-black text-agri-600">${r.sueldoDiario}</span>
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 border border-gray-100 dark:border-slate-800 px-1.5 py-0.5 rounded uppercase tracking-tighter transition-colors">{r.puesto}</span>
+                                <span className="text-xs font-black text-agri-600 dark:text-agri-400">${r.sueldoDiario}</span>
                               </div>
                             </div>
                           </td>
@@ -712,25 +724,25 @@ const Nomina = () => {
                             const diaData = r.asistencia[d];
                             const hasExtra = diaData.horasExtra > 0 || diaData.bonoExtra > 0;
                             return (
-                              <td key={d} className="px-2 py-4 text-center border-r border-gray-50 align-top">
+                              <td key={d} className="px-2 py-4 text-center border-r border-gray-50 dark:border-slate-800/50 align-top transition-colors">
                                 <div className="flex flex-col items-center gap-2">
                                   <button 
                                     disabled={isCerrada} 
                                     onClick={(e) => { e.stopPropagation(); if (!isCerrada) toggleAsistencia(r.id, d); }}
-                                    className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-sm transition-all duration-300 shadow-sm border ${
+                                    className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all duration-300 shadow-sm border ${
                                       diaData.asistio 
-                                        ? 'bg-agri-500 text-white border-agri-600 scale-105 shadow-agri-100' 
-                                        : 'bg-white text-gray-300 border-gray-100 hover:border-gray-300'
-                                    } ${isCerrada ? 'cursor-not-allowed grayscale-[0.5]' : 'hover:scale-110 active:scale-90 hover:shadow-md'}`}
+                                        ? 'bg-agri-500 dark:bg-agri-600 text-white border-agri-600 dark:border-agri-500 scale-105 shadow-agri-500/20' 
+                                        : 'bg-white dark:bg-slate-800 text-gray-200 dark:text-slate-700 border-gray-100 dark:border-slate-700 hover:border-agri-200 dark:hover:border-slate-600'
+                                    } ${isCerrada ? 'cursor-not-allowed grayscale-[0.8]' : 'hover:scale-110 active:scale-90 hover:shadow-md'}`}
                                   >
                                     {diaData.asistio ? '✓' : '-'}
                                   </button>
                                   <button 
                                     onClick={(e) => { e.stopPropagation(); handleOpenExtras(r.id, d, diaData.horasExtra, diaData.bonoExtra); }}
-                                    className={`text-[9px] w-full py-1 rounded-xl font-black uppercase tracking-tighter border-2 transition-all ${
+                                    className={`text-[9px] w-full py-1.5 rounded-xl font-black uppercase tracking-tighter border-2 transition-all ${
                                       hasExtra 
-                                        ? 'bg-orange-50 text-orange-600 border-orange-100 hover:border-orange-200' 
-                                        : 'bg-gray-50/50 text-gray-400 border-transparent hover:bg-gray-100 shadow-inner'
+                                        ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-900/50 hover:border-orange-200' 
+                                        : 'bg-gray-50/50 dark:bg-slate-800/50 text-gray-400 dark:text-slate-600 border-transparent hover:bg-gray-100 dark:hover:bg-slate-800'
                                     } ${isCerrada && !hasExtra ? 'opacity-40 grayscale animate-none pointer-events-none' : 'hover:scale-105 active:scale-95'}`}>
                                     {hasExtra 
                                       ? `${diaData.horasExtra > 0 ? `+${diaData.horasExtra}H` : ''}${diaData.bonoExtra > 0 ? ` +$${diaData.bonoExtra}` : ''}` 
@@ -740,67 +752,67 @@ const Nomina = () => {
                               </td>
                             );
                           })}
-                          <td className="px-8 py-4 text-right">
-                            <p className="text-2xl font-black text-gray-900 group-hover:text-agri-600 transition-colors">${calcularTotalRaya(r).toLocaleString()}</p>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Bruto Acumulado</p>
+                          <td className="px-8 py-4 text-right transition-colors">
+                            <p className="text-2xl font-black text-gray-900 dark:text-agri-50 group-hover:text-agri-600 dark:group-hover:text-agri-400 transition-colors">${calcularTotalRaya(r).toLocaleString()}</p>
+                            <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Bruto Acumulado</p>
                           </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
+                        </tbody>
+                      </table>
 
-                  {/* Pagination Controls */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-6 py-4 bg-gray-50/50 border-t border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-bold text-gray-500">
-                          Mostrando <span className="font-black text-gray-900">{paginatedRayas.length}</span> de <span className="font-black text-gray-900">{rayasActuales.length}</span> empleados
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                          disabled={currentPage === 1}
-                          className="p-2 rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                          <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            className={`w-9 h-9 rounded-xl text-xs font-black transition-all active:scale-90 ${
-                              currentPage === page
-                                ? 'bg-agri-600 text-white shadow-lg shadow-agri-100'
-                                : 'bg-white text-gray-500 border border-gray-100 hover:border-gray-200'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                          disabled={currentPage === totalPages}
-                          className="p-2 rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
+                      {/* Pagination Controls */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between px-6 py-4 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-bold text-gray-500 dark:text-slate-400">
+                              Mostrando <span className="font-black text-gray-900 dark:text-agri-50">{paginatedRayas.length}</span> de <span className="font-black text-gray-900 dark:text-agri-50">{rayasActuales.length}</span> empleados
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                              disabled={currentPage === 1}
+                              className="p-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                              <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`w-9 h-9 rounded-xl text-xs font-black transition-all active:scale-90 ${
+                                  currentPage === page
+                                    ? 'bg-agri-600 text-white shadow-lg shadow-agri-600/20'
+                                    : 'bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 border border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700'
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                              disabled={currentPage === totalPages}
+                              className="p-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </div>
-            </div>
-          )}
+                </div>
+              </div>
+            )}
 
           {activeTab === 'Historial' && (
             <div className="p-6">
               {historialSemanas.length === 0 ? (
                 <div className="py-20 flex flex-col items-center justify-center text-center">
                   <Calendar className="w-16 h-16 text-gray-300 mb-4" />
-                  <h2 className="text-xl font-bold text-gray-800 mb-2">Sin Historial</h2>
-                  <p className="text-gray-500 max-w-sm">Cierra una nómina semanal o registra una cuadrilla para ver el historial.</p>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-agri-50 mb-2">Sin Historial</h2>
+                  <p className="text-gray-500 dark:text-slate-400 max-w-sm">Cierra una nómina semanal o registra una cuadrilla para ver el historial.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -814,8 +826,8 @@ const Nomina = () => {
                     return (
                       <div
                         key={item.semana}
-                        onClick={() => navigate(`/nomina/historial/${item.semana}`)}
-                        className={`group relative bg-white border border-gray-100 rounded-3xl overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200`}
+                        onClick={() => navigate(`/dashboard/nomina/historial/${item.semana}`)}
+                        className={`group relative bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700/30 rounded-3xl overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200`}
                       >
                         {/* Accent top bar */}
                         <div className={`h-1.5 w-full ${statusColor.bar}`} />
@@ -824,7 +836,7 @@ const Nomina = () => {
                           {/* Header row */}
                           <div className="flex items-start justify-between mb-5">
                             <div>
-                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">
+                              <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">
                                 {item.semana.replace('W', 'Semana ').replace('-', ' — ')}
                               </p>
                               <p className="text-[11px] font-bold text-agri-600 mb-2">
@@ -882,8 +894,8 @@ const Nomina = () => {
                           {/* Big amount */}
                           <div className="mb-4">
                             <div className="flex items-baseline gap-1.5">
-                              <span className="text-3xl font-black text-gray-900">${item.pagado.toLocaleString()}</span>
-                              <span className="text-base font-bold text-gray-400">/ ${item.total.toLocaleString()}</span>
+                              <span className="text-3xl font-black text-gray-900 dark:text-agri-50">${item.pagado.toLocaleString()}</span>
+                              <span className="text-base font-bold text-gray-400 dark:text-slate-500">/ ${item.total.toLocaleString()}</span>
                             </div>
                             {item.pendiente > 0 && (
                               <p className="text-xs text-orange-500 font-bold mt-0.5">
@@ -901,16 +913,16 @@ const Nomina = () => {
                           </div>
 
                           {/* Financial breakdown footer */}
-                          <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                          <div className="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-slate-800">
                             <div className="flex items-center gap-4">
                               <div>
-                                <p className="text-[9px] text-gray-400 uppercase font-black tracking-widest">Efectivo</p>
-                                <p className="text-sm font-black text-gray-700">${item.efectivo.toLocaleString()}</p>
+                                <p className="text-[9px] text-gray-400 dark:text-slate-500 uppercase font-black tracking-widest">Efectivo</p>
+                                <p className="text-sm font-black text-gray-700 dark:text-agri-50">${item.efectivo.toLocaleString()}</p>
                               </div>
-                              <div className="w-px h-8 bg-gray-100" />
+                              <div className="w-px h-8 bg-gray-100 dark:bg-slate-800" />
                               <div>
-                                <p className="text-[9px] text-gray-400 uppercase font-black tracking-widest">Bancario</p>
-                                <p className="text-sm font-black text-gray-700">${item.banco.toLocaleString()}</p>
+                                <p className="text-[9px] text-gray-400 dark:text-slate-500 uppercase font-black tracking-widest">Bancario</p>
+                                <p className="text-sm font-black text-gray-700 dark:text-agri-50">${item.banco.toLocaleString()}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -932,173 +944,197 @@ const Nomina = () => {
       </div>
     )}
 
-      {/* Cabo payment modal removed - moved to NominaCaboPago.tsx */}
-
-      {/* === CUADRILLA FORM MODAL === */}
+      {/* === CUADRILLA MODAL === */}
       {showModalCuadrilla && (
-         <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-300 border border-gray-100">
-             <div className="bg-agri-600 px-8 py-4 text-white relative shrink-0">
-               <div className="absolute top-1/2 -translate-y-1/2 right-8 p-1.5 bg-white/20 rounded-xl">
-                 <Users className="w-4 h-4 text-white" />
-               </div>
-               <h2 className="text-xl font-display text-white italic tracking-tighter uppercase leading-none">Registro de Cuadrilla</h2>
-               <p className="text-white/60 text-[8px] font-black uppercase tracking-[0.2em] mt-1">Actividad y costos</p>
-             </div>
-  
-             <form onSubmit={handleCuadrillaSubmit} className="p-6 space-y-4">
-               {/* Primary Info Set */}
-               <div className="space-y-4">
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1 text-left">
-                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Cabo</label>
-                     <div className="relative group">
-                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-agri-500 transition-colors" />
-                       <select 
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 border border-transparent dark:border-slate-800">
+            <div className="p-8 bg-agri-600 text-white relative">
+               <h2 className="text-2xl font-display">Registrar Cuadrilla</h2>
+               <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Control de asistencia y costos externos</p>
+               <button onClick={() => setShowModalCuadrilla(false)} className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-colors">
+                  <X className="w-5 h-5 text-white" />
+               </button>
+            </div>
+            
+            <form onSubmit={handleCuadrillaSubmit} className="p-10 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-2">Cabo / Responsable</label>
+                  <select 
+                    required 
+                    value={formCuadrilla.caboId} 
+                    onChange={e => setFormCuadrilla({ ...formCuadrilla, caboId: e.target.value })} 
+                    className="w-full bg-agri-50/50 dark:bg-slate-800 border border-agri-100/50 dark:border-slate-700/50 rounded-2xl px-5 py-3 text-xs font-bold text-agri-900 dark:text-agri-50 focus:ring-4 focus:ring-agri-500/10 outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>Seleccionar Cabo...</option>
+                    {cabos.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-2">Huerta / Ubicación</label>
+                  <select 
+                    required 
+                    value={formCuadrilla.huertaId} 
+                    onChange={e => setFormCuadrilla({ ...formCuadrilla, huertaId: e.target.value })} 
+                    className="w-full bg-agri-50/50 dark:bg-slate-800 border border-agri-100/50 dark:border-slate-700/50 rounded-2xl px-5 py-3 text-xs font-bold text-agri-900 dark:text-agri-50 focus:ring-4 focus:ring-agri-500/10 outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>Seleccionar Huerta...</option>
+                    {huertas.map(h => (
+                      <option key={h.id} value={h.id}>{h.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-2">Fecha de Trabajo</label>
+                <div className="relative group/date">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-agri-400 dark:text-slate-600 transition-colors" />
+                  <input 
+                    type="date" 
+                    required 
+                    value={formCuadrilla.fecha} 
+                    onChange={e => setFormCuadrilla({ ...formCuadrilla, fecha: e.target.value })} 
+                    className="w-full bg-agri-50/50 dark:bg-slate-800 border border-agri-100/50 dark:border-slate-700/50 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-agri-900 dark:text-agri-50 outline-none transition-all cursor-pointer" 
+                  />
+                </div>
+              </div>
+
+               <div className="bg-agri-50/30 dark:bg-slate-800/30 rounded-[2rem] p-6 border border-agri-100/50 dark:border-slate-700/50">
+                 <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                   <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Num. Personas</label>
+                     <div className="relative">
+                       <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-agri-400" />
+                       <input 
+                         type="number" 
+                         placeholder="0" 
                          required 
-                         value={formCuadrilla.caboId} 
-                         onChange={e => setFormCuadrilla({ ...formCuadrilla, caboId: e.target.value })} 
-                          className="w-full bg-agri-50/20 border border-agri-100/30 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-gray-700 outline-none focus:ring-4 focus:ring-agri-500/10 focus:border-agri-500 transition-all appearance-none cursor-pointer"
-                       >
-                         <option value="" disabled>Seleccionar Cabo...</option>
-                         {cabos.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
-                       </select>
+                         value={formCuadrilla.personas} 
+                         onChange={e => setFormCuadrilla({ ...formCuadrilla, personas: e.target.value })} 
+                         className="w-full bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-3 text-sm font-black text-agri-900 dark:text-agri-50 outline-none focus:border-agri-600 transition-colors" 
+                       />
                      </div>
                    </div>
-                   <div className="space-y-1 text-left">
-                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Huerta / Sector</label>
-                     <div className="relative group">
-                       <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-agri-500 transition-colors" />
-                       <select 
+                   <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Tarifa p/p ($)</label>
+                     <div className="relative">
+                       <CircleDollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-agri-400" />
+                       <input 
+                         type="number" 
+                         placeholder="0.00" 
                          required 
-                         value={formCuadrilla.huertaId} 
-                         onChange={e => setFormCuadrilla({ ...formCuadrilla, huertaId: e.target.value })} 
-                          className="w-full bg-agri-50/20 border border-agri-100/30 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-gray-700 outline-none focus:ring-4 focus:ring-agri-500/10 focus:border-agri-500 transition-all appearance-none cursor-pointer"
-                       >
-                         <option value="" disabled>Seleccionar Huerta...</option>
-                         {huertas.map(h => <option key={h.id} value={h.nombre}>{h.nombre}</option>)}
-                       </select>
+                         value={formCuadrilla.tarifa} 
+                         onChange={e => setFormCuadrilla({ ...formCuadrilla, tarifa: e.target.value })} 
+                         className="w-full bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-3 text-sm font-black text-agri-900 dark:text-agri-50 outline-none focus:border-agri-600 transition-colors" 
+                       />
+                     </div>
+                   </div>
+                   <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Flete / Transp.</label>
+                     <div className="relative">
+                       <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-agri-400" />
+                       <input 
+                         type="number" 
+                         step="0.01"
+                         placeholder="0.00" 
+                         required 
+                         value={formCuadrilla.flete} 
+                         onChange={e => setFormCuadrilla({ ...formCuadrilla, flete: e.target.value })} 
+                         className="w-full bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-3 text-sm font-black text-agri-900 dark:text-agri-50 outline-none focus:border-agri-600 transition-colors" 
+                       />
+                     </div>
+                   </div>
+                   <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Comida ($)</label>
+                     <div className="relative">
+                       <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-agri-400" />
+                       <input 
+                         type="number" 
+                         step="0.01"
+                         placeholder="0.00" 
+                         required 
+                         value={formCuadrilla.comida} 
+                         onChange={e => setFormCuadrilla({ ...formCuadrilla, comida: e.target.value })} 
+                         className="w-full bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-3 text-sm font-black text-agri-900 dark:text-agri-50 outline-none focus:border-agri-600 transition-colors" 
+                       />
                      </div>
                    </div>
                  </div>
-  
-                 <div className="space-y-1 text-left">
-                   <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Fecha de Registro</label>
-                   <div className="relative group">
-                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-agri-500 transition-colors" />
-                     <input 
-                       type="date" 
-                       required 
-                       value={formCuadrilla.fecha} 
-                       onChange={e => setFormCuadrilla({ ...formCuadrilla, fecha: e.target.value })} 
-                        className="w-full bg-agri-50/20 border border-agri-100/30 rounded-2xl pl-11 pr-4 py-2.5 text-xs font-bold text-gray-700 outline-none focus:ring-4 focus:ring-agri-500/10 focus:border-agri-500 transition-all cursor-pointer" 
-                     />
-                   </div>
-                 </div>
                </div>
-                   {/* Metrics/Costs Partition */}
-                <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Personal</label>
-                      <div className="relative">
-                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                        <input 
-                          type="number" 
-                          placeholder="0" 
-                          required 
-                          value={formCuadrilla.personas} 
-                          onChange={e => setFormCuadrilla({ ...formCuadrilla, personas: e.target.value })} 
-                          className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-xs font-bold focus:border-agri-500 outline-none" 
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Tarifa</label>
-                      <div className="relative">
-                        <CircleDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                        <input 
-                          type="number" 
-                          placeholder="0.00" 
-                          required 
-                          value={formCuadrilla.tarifa} 
-                          onChange={e => setFormCuadrilla({ ...formCuadrilla, tarifa: e.target.value })} 
-                          className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-xs font-bold focus:border-agri-500 outline-none" 
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Flete</label>
-                      <div className="relative">
-                        <TrendingUp className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                        <input 
-                          type="number" 
-                          placeholder="0.00" 
-                          required 
-                          value={formCuadrilla.flete} 
-                          onChange={e => setFormCuadrilla({ ...formCuadrilla, flete: e.target.value })} 
-                          className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-xs font-bold focus:border-agri-500 outline-none" 
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Comida</label>
-                      <div className="relative">
-                        <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                        <input 
-                          type="number" 
-                          placeholder="0.00" 
-                          required 
-                          value={formCuadrilla.comida} 
-                          onChange={e => setFormCuadrilla({ ...formCuadrilla, comida: e.target.value })} 
-                          className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-3 py-2 text-xs font-bold focus:border-agri-500 outline-none" 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-  
-                {/* Footer Actions */}
-                <div className="flex gap-3 pt-2">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowModalCuadrilla(false)} 
-                    className="flex-1 px-4 py-3 border border-gray-200 text-gray-400 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-gray-50 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="flex-1 bg-agri-600 text-white rounded-2xl py-3 font-black text-[9px] uppercase tracking-widest hover:bg-agri-700 shadow-xl shadow-agri-100 transition-all active:scale-95"
-                  >
-                    Guardar
-                  </button>
-                </div>
-             </form>
-           </div>
-         </div>
-       )}
+ 
+               <div className="flex gap-4 pt-4">
+                 <button 
+                   type="button" 
+                   onClick={() => setShowModalCuadrilla(false)} 
+                   className="flex-1 px-4 py-4 border border-gray-100 dark:border-slate-800 text-gray-400 dark:text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                 >
+                   Cancelar
+                 </button>
+                 <button 
+                   type="submit" 
+                   className="flex-1 bg-agri-600 text-white rounded-2xl py-4 font-black text-[10px] uppercase tracking-widest hover:bg-agri-700 shadow-xl shadow-agri-600/20 transition-all active:scale-95"
+                 >
+                   Guardar Registro
+                 </button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* === EXTRAS MODAL === */}
       {showModalExtras && (
-        <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Edit3 className="w-5 h-5 text-gray-400" /> Extras (Día {selectedDia})</h2>
-              <button onClick={() => setShowModalExtras(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 bg-slate-900/60 z-[70] flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-300 border border-transparent dark:border-slate-800">
+            <div className="p-8 bg-slate-100 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700/50 relative">
+              <h2 className="text-xl font-display text-slate-800 dark:text-agri-50 flex items-center gap-3">
+                <div className="p-2 bg-agri-600 text-white rounded-xl shadow-lg shadow-agri-600/20">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                Extras (Día {selectedDia})
+              </h2>
+              <button onClick={() => setShowModalExtras(false)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <form onSubmit={handleExtrasSubmit} className="p-5 space-y-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Horas Extras</label>
-                <input type="number" min="0" value={formExtras.horasExtra} onChange={e => setFormExtras({ ...formExtras, horasExtra: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" placeholder="Ej: 2" />
+            
+            <form onSubmit={handleExtrasSubmit} className="p-10 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-2">Horas Extras</label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    min="0" 
+                    value={formExtras.horasExtra} 
+                    onChange={e => setFormExtras({ ...formExtras, horasExtra: e.target.value })} 
+                    className="w-full bg-agri-50/50 dark:bg-slate-800 border border-agri-100/50 dark:border-slate-700/50 rounded-2xl px-6 py-4 text-lg font-black text-agri-900 dark:text-agri-50 outline-none focus:ring-4 focus:ring-agri-500/10 transition-colors text-center" 
+                    placeholder="Ej: 2" 
+                  />
+                  <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-agri-400 uppercase">Horas</span>
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Extra Económico ($)</label>
-                <input type="number" min="0" value={formExtras.bonoExtra} onChange={e => setFormExtras({ ...formExtras, bonoExtra: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm" placeholder="Ej: 500" />
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-2">Bono Económico ($)</label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    min="0" 
+                    value={formExtras.bonoExtra} 
+                    onChange={e => setFormExtras({ ...formExtras, bonoExtra: e.target.value })} 
+                    className="w-full bg-agri-50/50 dark:bg-slate-800 border border-agri-100/50 dark:border-slate-700/50 rounded-2xl px-6 py-4 text-lg font-black text-agri-600 dark:text-agri-400 outline-none focus:ring-4 focus:ring-agri-500/10 transition-colors text-center" 
+                    placeholder="Ej: 500" 
+                  />
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-sm font-black text-agri-600">$</span>
+                </div>
               </div>
-              <div className="pt-4 flex gap-3 border-t border-gray-100">
-                <button type="button" onClick={() => setShowModalExtras(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50">Cancelar</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-agri-600 text-white rounded-xl font-medium hover:bg-agri-700 shadow-sm">Aplicar</button>
+
+              <div className="pt-6 flex gap-4">
+                <button type="button" onClick={() => setShowModalExtras(false)} className="flex-1 py-5 border border-gray-100 dark:border-slate-800 text-gray-400 dark:text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-50 dark:hover:bg-slate-800 transition-all">Cancelar</button>
+                <button type="submit" className="flex-1 py-5 bg-agri-900 dark:bg-agri-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-xl shadow-agri-900/20">Aplicar</button>
               </div>
             </form>
           </div>

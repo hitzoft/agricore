@@ -1,5 +1,6 @@
-import React from 'react';
-import { LogOut, AlertTriangle, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, X, CloudOff } from 'lucide-react';
+import { db } from '../db/db';
 
 interface LogoutModalProps {
   isOpen: boolean;
@@ -8,6 +9,31 @@ interface LogoutModalProps {
 }
 
 const LogoutModal: React.FC<LogoutModalProps> = ({ isOpen, onClose, onConfirm }) => {
+  const [hasPendingSync, setHasPendingSync] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const checkPending = async () => {
+        const collections = [
+          'empleados', 'clientes', 'proveedores', 'huertas', 
+          'cabos', 'cuentasBancarias', 'folios', 'gastos', 
+          'cuadrillas', 'rayasSemanales', 'pagosNominaSemanal', 'productos'
+        ];
+        
+        for (const col of collections) {
+          // @ts-ignore
+          const pending = await db[col].where('syncStatus').equals('pending').count();
+          if (pending > 0) {
+            setHasPendingSync(true);
+            return;
+          }
+        }
+        setHasPendingSync(false);
+      };
+      checkPending();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -31,20 +57,22 @@ const LogoutModal: React.FC<LogoutModalProps> = ({ isOpen, onClose, onConfirm })
           </p>
         </div>
 
-        {/* Warning Box */}
-        <div className="px-8 mt-6">
-          <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100 flex gap-4 items-start">
-            <div className="bg-white p-1.5 rounded-lg shadow-sm">
-              <LogOut className="w-4 h-4 text-amber-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Aviso de Privacidad</p>
-              <p className="text-[11px] text-amber-700/80 font-medium leading-relaxed">
-                Para proteger tu privacidad multi-tenant, limpiaremos la base de datos local. Asegúrate de tener conexión a Internet para no perder cambios pendientes.
-              </p>
+        {/* Warning Box (Only if pending sync) */}
+        {hasPendingSync && (
+          <div className="px-8 mt-6">
+            <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100 flex gap-4 items-start animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="bg-white p-1.5 rounded-lg shadow-sm">
+                <CloudOff className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Cambios sin guardar</p>
+                <p className="text-[11px] text-amber-700/80 font-medium leading-relaxed">
+                  Tienes datos locales que no han sido sincronizados con la nube. Si sales ahora, estos cambios se perderán permanentemente.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Action Buttons */}
         <div className="p-8 flex gap-3">

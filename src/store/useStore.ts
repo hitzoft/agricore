@@ -13,7 +13,7 @@ export interface BaseRecord {
   activo?: boolean;
 }
 
-export type GastoCategoria = 'Insumos' | 'Operativo' | 'Mantenimiento' | 'Fijo' | 'Caja Chica' | 'Administrativo';
+export type GastoCategoria = 'Insumos' | 'Operativo' | 'Mantenimiento' | 'Fijo' | 'Caja Chica' | 'Administrativo' | 'Combustibles' | 'Fletes' | 'Comisiones';
 
 export interface Empleado extends BaseRecord {
   nombre: string;
@@ -51,6 +51,8 @@ export interface CuentaBancaria extends BaseRecord {
   nombre: string;
   banco?: string;
   numero?: string;
+  titular?: string;
+  saldo?: number;
 }
 
 export interface Producto extends BaseRecord {
@@ -61,7 +63,7 @@ export interface PagoDetalle {
   id: string;
   fecha: string;
   monto: number;
-  metodo: 'Efectivo' | 'Cuenta';
+  metodo: 'Efectivo' | 'Cuenta' | 'Transferencia';
   cuentaId?: string;
   nota?: string;
 }
@@ -92,10 +94,14 @@ export interface FolioVenta extends BaseRecord {
   fecha: string;
   status: string;
   montoTotal: number;
-  precioPorKilo?: number;
-  tipoVenta: 'precio_fijo' | 'a_definir';
-  clienteId: string;
-  esExportacion: boolean;
+  precio?: string;
+  cuadrillaId?: string;
+  fleteMonto?: number;
+  comisionMonto?: number;
+  empaqueMonto?: number;
+  metodo?: 'Efectivo' | 'Transferencia';
+  idProducto?: string;
+  esExportacion?: boolean;
   abonos: Abono[];
   statusHistory: StatusCambio[];
   seasonId: string;
@@ -109,7 +115,7 @@ export interface Gasto extends BaseRecord {
   fullDate: string; // ISO string for precise filtering
   folio: string;
   tieneComprobante: boolean;
-  metodo: 'Efectivo' | 'Cuenta' | 'Crédito';
+  metodo: 'Efectivo' | 'Cuenta' | 'Crédito' | 'Transferencia';
   abonos: Abono[];
   status: 'Pendiente' | 'Parcial' | 'Pagado';
   cuentaId?: string;
@@ -118,7 +124,9 @@ export interface Gasto extends BaseRecord {
 }
 
 export interface NominaCuadrilla extends BaseRecord {
-  cabo: string;
+  caboId: string;
+  caboNombre: string;
+  huertaId?: string; // Nuevo campo para robustez
   personas: number;
   tarifa: number;
   flete: number;
@@ -198,11 +206,11 @@ interface AppState {
   updateCliente: (id: string, data: Partial<Cliente>) => void;
   addFolio: (folio: Omit<FolioVenta, 'id' | 'syncStatus' | 'updatedAt' | 'activo' | 'montoTotal' | 'abonos' | 'statusHistory' | 'folio' | 'esExportacion' | 'fecha'> & { fecha?: string }) => string;
   setVentaMontoTotal: (idVenta: string, monto: number, nota?: string) => void;
-  addAbonoVenta: (idVenta: string, abono: Omit<Abono, 'id'>) => void;
+  addAbonoVenta: (idVenta: string, abono: Omit<Abono, 'id'>) => string;
   updateVentaStatus: (idVenta: string, status: string, fechaManual?: string, nota?: string) => void;
 
-  addGasto: (gasto: Omit<Gasto, 'id' | 'syncStatus' | 'updatedAt' | 'activo' | 'abonos' | 'status' | 'fecha' | 'fullDate'> & { fecha?: string; fullDate?: string }) => void;
-  addAbonoGasto: (idGasto: string, abono: Omit<Abono, 'id'>) => void;
+  addGasto: (gasto: Omit<Gasto, 'id' | 'syncStatus' | 'updatedAt' | 'activo' | 'abonos' | 'status' | 'fecha' | 'fullDate'> & { fecha?: string; fullDate?: string }) => string;
+  addAbonoGasto: (idGasto: string, abono: Omit<Abono, 'id'>) => string;
   
   // Catálogos
   addEmpleado: (empleado: Omit<Empleado, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => void;
@@ -213,7 +221,7 @@ interface AppState {
   updateHuerta: (id: string, data: Partial<Huerta>) => void;
   addProveedor: (prov: Omit<Proveedor, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => Proveedor;
   updateProveedor: (id: string, data: Partial<Proveedor>) => void;
-  addCuentaBancaria: (cuenta: Omit<CuentaBancaria, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => void;
+  addCuentaBancaria: (cuenta: Omit<CuentaBancaria, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => string;
   updateCuentaBancaria: (id: string, data: Partial<CuentaBancaria>) => void;
   addProducto: (producto: Omit<Producto, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => string;
   updateProducto: (id: string, data: Partial<Producto>) => void;
@@ -224,6 +232,7 @@ interface AppState {
   
   // Nomina Semanal
   generarNominaActiva: (semana: string) => void;
+  addRayaSemanal: (raya: Omit<RayaSemanal, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => void;
   toggleAsistencia: (idRaya: string, dia: DiaSemana) => void;
   setExtras: (idRaya: string, dia: DiaSemana, horasExtra: number, bonoExtra: number) => void;
   setAsistenciaMasiva: (semana: string, dia: DiaSemana, valor: boolean) => void;
@@ -260,10 +269,13 @@ export const useStore = create<AppState>((set) => ({
   clientes: [],
   productos: [],
   temporadas: [],
-  activeSeasonId: '',
-  darkMode: localStorage.getItem('theme') === 'dark',
+  activeSeasonId: localStorage.getItem('activeSeasonId') || '',
+  darkMode: localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : true,
 
-  setActiveSeason: (id) => set({ activeSeasonId: id }),
+  setActiveSeason: (id) => {
+    localStorage.setItem('activeSeasonId', id);
+    set({ activeSeasonId: id });
+  },
 
   toggleDarkMode: () => set((state) => {
     const newMode = !state.darkMode;
@@ -273,22 +285,27 @@ export const useStore = create<AppState>((set) => ({
     return { darkMode: newMode };
   }),
 
-  addTemporada: (tempData) => set((state) => {
-    const newRecord: Temporada = { 
-      id: generateId(), 
-      nombre: tempData.nombre || 'Sin Nombre',
-      descripcion: tempData.descripcion || '',
-      activa: true,
-      syncStatus: 'pending', 
-      updatedAt: new Date().toISOString()
-    };
-    localDb.temporadas.put(newRecord);
-    pushToCloud('temporadas', newRecord);
-    return { 
-      temporadas: [...state.temporadas, newRecord],
-      activeSeasonId: newRecord.id 
-    };
-  }),
+  addTemporada: (tempData) => {
+    const newId = generateId();
+    set((state) => {
+      const newRecord: Temporada = { 
+        id: newId, 
+        nombre: tempData.nombre || 'Sin Nombre',
+        descripcion: tempData.descripcion || '',
+        activa: true,
+        syncStatus: 'pending', 
+        updatedAt: new Date().toISOString()
+      };
+      localDb.temporadas.put(newRecord);
+      pushToCloud('temporadas', newRecord);
+      localStorage.setItem('activeSeasonId', newId);
+      return { 
+        temporadas: [...state.temporadas, newRecord],
+        activeSeasonId: newId 
+      };
+    });
+    return newId;
+  },
 
   updateTemporada: (id, data) => set((state) => {
     const item = state.temporadas.find(t => t.id === id);
@@ -378,38 +395,42 @@ export const useStore = create<AppState>((set) => ({
     };
   }),
 
-  addAbonoVenta: (idVenta, abono) => set(state => {
-    const venta = state.folios.find(f => f.id === idVenta);
-    if (!venta || venta.status === 'Liquidado') return state;
+  addAbonoVenta: (idVenta, abono) => {
+    const newId = generateId();
+    set(state => {
+      const venta = state.folios.find(f => f.id === idVenta);
+      if (!venta || venta.status === 'Liquidado') return state;
 
-    const totalPagado = venta.abonos.reduce((acc, a) => acc + a.monto, 0) + abono.monto;
-    const isNewlyLiquidated = venta.montoTotal > 0 && totalPagado >= venta.montoTotal;
-    
-    const updatedRecord: FolioVenta = { 
-      ...venta, 
-      status: isNewlyLiquidated ? 'Liquidado' : venta.status,
-      abonos: [...venta.abonos, { ...abono, id: generateId() }],
-      statusHistory: isNewlyLiquidated ? [
-        { 
-          id: generateId(), 
-          fecha: new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }), 
-          status: 'Liquidado', 
-          nota: 'Liquidación automática por pago total' 
-        },
-        ...venta.statusHistory
-      ] : venta.statusHistory,
-      syncStatus: 'pending' as const,
-      updatedAt: new Date().toISOString()
-    };
+      const totalPagado = (venta.abonos || []).reduce((acc, a) => acc + a.monto, 0) + abono.monto;
+      const isNewlyLiquidated = (venta.montoTotal || 0) > 0 && totalPagado >= (venta.montoTotal || 0);
 
-    localDb.folios.put(updatedRecord);
-    pushToCloud('folios', updatedRecord);
+      const updatedRecord: FolioVenta = { 
+        ...venta, 
+        status: isNewlyLiquidated ? 'Liquidado' : venta.status,
+        abonos: [...(venta.abonos || []), { ...abono, id: newId }],
+        statusHistory: isNewlyLiquidated ? [
+          { 
+            id: generateId(), 
+            fecha: new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }), 
+            status: 'Liquidado', 
+            nota: 'Liquidación automática por pago total' 
+          },
+          ...venta.statusHistory
+        ] : venta.statusHistory,
+        syncStatus: 'pending' as const,
+        updatedAt: new Date().toISOString()
+      };
 
-    return {
-      folios: state.folios.map(f => f.id === idVenta ? updatedRecord : f),
-      alertas: [{ id: generateId(), type: 'info', text: `Abono registrado exitosamente por $${abono.monto}`, time: 'Ahora' }, ...state.alertas]
-    }
-  }),
+      localDb.folios.put(updatedRecord);
+      pushToCloud('folios', updatedRecord);
+
+      return {
+        folios: state.folios.map(f => f.id === idVenta ? updatedRecord : f),
+        toasts: [{ id: generateId(), message: `Pago de $${abono.monto} registrado con éxito.`, type: 'success' }, ...state.toasts]
+      };
+    });
+    return newId;
+  },
 
   updateVentaStatus: (idVenta, status, fechaManual, nota) => set(state => {
     const venta = state.folios.find(f => f.id === idVenta);
@@ -581,6 +602,18 @@ export const useStore = create<AppState>((set) => ({
     }
   }),
 
+  addRayaSemanal: (rayaData) => set((state) => {
+    const newRecord: RayaSemanal = { 
+      ...rayaData, 
+      id: generateId(), 
+      syncStatus: 'pending' as const, 
+      updatedAt: new Date().toISOString() 
+    };
+    localDb.rayasSemanales.put(newRecord);
+    pushToCloud('rayasSemanales', newRecord);
+    return { rayasSemanales: [newRecord, ...state.rayasSemanales] };
+  }),
+
   addFolio: (folioData) => {
     const newId = generateId();
     let newFolioNumber = '';
@@ -594,12 +627,13 @@ export const useStore = create<AppState>((set) => ({
       newFolioNumber = `V-${String(lastFolio + 1).padStart(3, '0')}`;
       
       let montoTotal = 0;
-      if (folioData.tipoVenta === 'precio_fijo' && folioData.precioPorKilo) {
+      if (folioData.precio) {
         const weight = parseFloat(folioData.peso.replace(/[^0-9.]/g, '')) || 0;
-        montoTotal = weight * folioData.precioPorKilo;
+        const price = parseFloat(folioData.precio) || 0;
+        montoTotal = weight * price;
       }
 
-      const client = state.clientes.find(c => c.id === folioData.clienteId);
+      const client = state.clientes.find(c => c.id === (folioData as any).clienteId);
       const now = new Date();
       const finalFecha = folioData.fecha || now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
       const historyFecha = folioData.fecha ? 
@@ -662,7 +696,7 @@ export const useStore = create<AppState>((set) => ({
         { 
           id: generateId(), 
           type: 'info', 
-          text: `Nueva Cuadrilla: ${newRecord.cabo} (${newRecord.huerta})`, 
+          text: `Nueva Cuadrilla: ${newRecord.caboNombre} (${newRecord.huerta})`, 
           time: 'Ahora' 
         }, 
         ...state.alertas
@@ -856,12 +890,16 @@ export const useStore = create<AppState>((set) => ({
     return { proveedores: state.proveedores.map(p => p.id === id ? updatedRecord : p) };
   }),
 
-  addCuentaBancaria: (cuentaData) => set((state) => {
-    const newRecord: CuentaBancaria = { ...cuentaData, activo: true, id: generateId(), syncStatus: 'pending' as const, updatedAt: new Date().toISOString() };
-    localDb.cuentasBancarias.put(newRecord);
-    pushToCloud('cuentasBancarias', newRecord);
-    return { cuentasBancarias: [newRecord, ...state.cuentasBancarias] };
-  }),
+  addCuentaBancaria: (cuentaData) => {
+    const newId = generateId();
+    set((state) => {
+      const newRecord: CuentaBancaria = { ...cuentaData, id: newId, syncStatus: 'pending' as const, updatedAt: new Date().toISOString(), activo: true };
+      localDb.cuentasBancarias.put(newRecord);
+      pushToCloud('cuentasBancarias', newRecord);
+      return { cuentasBancarias: [newRecord, ...state.cuentasBancarias] };
+    });
+    return newId;
+  },
 
   updateCuentaBancaria: (id, data) => set((state) => {
     const item = state.cuentasBancarias.find(c => c.id === id);
@@ -900,72 +938,48 @@ export const useStore = create<AppState>((set) => ({
     return { productos: state.productos.map(p => p.id === id ? updatedRecord : p) };
   }),
 
-  addGasto: (gastoData: any) => set((state) => {
-    const now = new Date();
-    let finalFullDate = gastoData.fullDate || now.toISOString();
-    
-    if (gastoData.fullDate && gastoData.fullDate.length === 10) {
-      const timeStr = now.toISOString().substring(10);
-      finalFullDate = gastoData.fullDate + timeStr;
-    }
-
-    const d = new Date(finalFullDate);
-    const finalFecha = gastoData.fecha || d.toLocaleDateString('es-MX', { 
-      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
+  addGasto: (gastoData) => {
+    const newId = generateId();
+    set((state) => {
+      const newRecord: Gasto = { 
+        ...gastoData, 
+        id: newId,
+        fecha: gastoData.fecha || new Date().toISOString().split('T')[0],
+        fullDate: gastoData.fullDate || new Date().toISOString(),
+        abonos: [], 
+        status: 'Pendiente', 
+        syncStatus: 'pending' as const, 
+        updatedAt: new Date().toISOString() 
+      };
+      localDb.gastos.put(newRecord);
+      pushToCloud('gastos', newRecord);
+      return { gastos: [newRecord, ...state.gastos] };
     });
+    return newId;
+  },
 
-    const newRecord: Gasto = { 
-      ...gastoData, 
-      abonos: [], 
-      status: gastoData.metodo === 'Crédito' ? 'Pendiente' : 'Pagado',
-      fecha: finalFecha,
-      fullDate: finalFullDate,
-      seasonId: state.activeSeasonId,
-      id: generateId(), 
-      syncStatus: 'pending' as const, 
-      updatedAt: now.toISOString() 
-    };
+  addAbonoGasto: (idGasto, abono) => {
+    const newId = generateId();
+    set(state => {
+      const gasto = state.gastos.find(g => g.id === idGasto);
+      if (!gasto) return state;
 
-    localDb.gastos.put(newRecord);
-    pushToCloud('gastos', newRecord);
+      const updatedRecord: Gasto = { 
+        ...gasto, 
+        abonos: [...gasto.abonos, { ...abono, id: newId }],
+        syncStatus: 'pending' as const,
+        updatedAt: new Date().toISOString()
+      };
 
-    return {
-      gastos: [newRecord, ...state.gastos],
-      alertas: [
-        { 
-          id: generateId(), 
-          type: 'warning', 
-          text: `Nuevo Gasto: ${newRecord.concepto} ($${newRecord.monto.toLocaleString()})`, 
-          time: 'Ahora' 
-        }, 
-        ...state.alertas
-      ]
-    };
-  }),
+      localDb.gastos.put(updatedRecord);
+      pushToCloud('gastos', updatedRecord);
 
-  addAbonoGasto: (idGasto, abono) => set(state => {
-    const gasto = state.gastos.find(g => g.id === idGasto);
-    if (!gasto || gasto.status === 'Pagado') return state;
-
-    const totalPagado = gasto.abonos.reduce((acc, a) => acc + a.monto, 0) + abono.monto;
-    const isNewlyPaid = totalPagado >= gasto.monto;
-
-    const updatedRecord: Gasto = {
-      ...gasto,
-      status: isNewlyPaid ? 'Pagado' : 'Parcial',
-      abonos: [...gasto.abonos, { ...abono, id: generateId() }],
-      syncStatus: 'pending' as const,
-      updatedAt: new Date().toISOString()
-    };
-
-    localDb.gastos.put(updatedRecord);
-    pushToCloud('gastos', updatedRecord);
-
-    return {
-      gastos: state.gastos.map(g => g.id === idGasto ? updatedRecord : g),
-      toasts: [{ id: generateId(), message: `Abono de $${abono.monto} registrado correctamente.`, type: 'success' }, ...state.toasts]
-    };
-  }),
+      return {
+        gastos: state.gastos.map(g => g.id === idGasto ? updatedRecord : g)
+      };
+    });
+    return newId;
+  },
 
   addAlert: (alerta) => set((state) => ({
     alertas: [{ id: generateId(), ...alerta, timestamp: new Date().toISOString() }, ...state.alertas]
@@ -1011,7 +1025,7 @@ export const useStore = create<AppState>((set) => ({
       pagosNominaSemanal: [],
       temporadas: [],
       activeSeasonId: '',
-      toasts: [{ id: generateId(), message: 'Historial borrado de la nube y localmente.', type: 'success' }, ...useStore.getState().toasts]
     });
+    localStorage.removeItem('activeSeasonId');
   }
 }));

@@ -2,27 +2,40 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Match any document in any collection
+    // Helper function to check if the user is an admin
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Rules for the users collection
+    match /users/{userId} {
+      // Users can read/write their own profile
+      // Admins can read/write ANY profile
+      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Match any document in any other collection
     match /{collection}/{document} {
       allow read: if request.auth != null && (
+        isAdmin() ||
         !('ownerId' in resource.data) || 
         resource.data.ownerId == request.auth.uid
       );
       
       allow write: if request.auth != null && (
-        resource == null || 
-        !('ownerId' in resource.data) || 
-        resource.data.ownerId == request.auth.uid
-      ) && (
-        request.method == 'delete' ||
-        request.resource.data.ownerId == request.auth.uid
+        isAdmin() ||
+        (
+          (resource == null || !('ownerId' in resource.data) || resource.data.ownerId == request.auth.uid) && 
+          (request.method == 'delete' || request.resource.data.ownerId == request.auth.uid)
+        )
       );
     }
     
-    // Specifically protect global settings if any (none yet, but good practice)
+    // Specifically protect global settings if any
     match /settings/{settingId} {
       allow read: if request.auth != null;
-      allow write: if false; // Only admin (via console) can change global settings
+      allow write: if isAdmin(); 
     }
   }
 }

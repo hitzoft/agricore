@@ -108,43 +108,65 @@ const NetworkStatus = ({
 
       {/* MODAL SYNC MANAGER */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-300">
-           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
-              <div className="p-8 bg-agri-900 text-white relative flex shrink-0 items-center gap-4">
-                 <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
-                    {totalPending > 0 ? <CloudOff className="w-6 h-6 text-orange-400" /> : <Cloud className="w-6 h-6 text-agri-400" />}
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 md:p-10 overflow-hidden">
+           {/* Backdrop con blurring */}
+           <div 
+             className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-500"
+             onClick={() => setShowModal(false)}
+           />
+           
+           {/* Modal Container - Forzado a estar en el centro */}
+           <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-bottom-12 duration-500 border border-slate-200 dark:border-slate-800 max-h-[90vh]">
+              
+              {/* Nueva Cabecera Ultra-Visible */}
+              <div className="p-8 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                 <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-agri-600 rounded-2xl flex items-center justify-center shadow-lg shadow-agri-600/20">
+                       {totalPending > 0 ? <CloudOff className="w-6 h-6 text-white" /> : <Cloud className="w-6 h-6 text-white" />}
+                    </div>
+                    <div>
+                       <h2 className="text-xl font-display font-black text-slate-900 dark:text-white leading-none">Gestor de Nube</h2>
+                       <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mt-1.5">Sincronización Activa</p>
+                    </div>
                  </div>
-                 <div>
-                    <h2 className="text-xl font-display leading-none">Gestor de Nube</h2>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">Sincronización de Datos</p>
-                 </div>
-                 <button onClick={() => setShowModal(false)} className="absolute top-8 right-8 p-2 bg-white/10 hover:bg-white/20 rounded-xl">
-                    <X className="w-4 h-4" />
+
+                 {/* Botón de Cierre con Contraste Total */}
+                 <button 
+                    onClick={() => setShowModal(false)}
+                    className="p-3 bg-white dark:bg-slate-700 hover:bg-red-500 dark:hover:bg-red-500 text-slate-900 dark:text-white hover:text-white rounded-2xl shadow-md hover:shadow-xl transition-all active:scale-90 border border-slate-200 dark:border-slate-600 flex items-center justify-center group"
+                    title="Cerrar"
+                 >
+                    <X className="w-5 h-5 stroke-[4]" />
                  </button>
               </div>
 
-              <div className="p-8 space-y-6 overflow-y-auto flex-1 scrollbar-hide">
+              <div className="p-10 space-y-8 overflow-y-auto flex-1 scrollbar-hide dark:bg-slate-900">
                  {/* Pending List */}
-                 <div className="space-y-4">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Pendientes por Sincronizar</p>
-                    <div className="bg-slate-50/50 rounded-[2.5rem] border border-slate-100 divide-y divide-slate-100 overflow-hidden">
+                 <div className="space-y-5">
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Pendientes por Sincronizar</p>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-inner">
                        {pendingItems.length > 0 ? pendingItems.map(item => (
-                          <div key={item.name} className="p-5 flex items-center justify-between group hover:bg-white transition-colors">
-                             <div className="flex items-center gap-3">
-                                <Database className="w-4 h-4 text-slate-300" />
-                                <span className="text-sm font-black text-slate-700">{item.name}</span>
+                          <div key={item.name} className="p-6 flex items-center justify-between group hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                             <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700">
+                                   <Database className="w-4 h-4 text-agri-600" />
+                                </div>
+                                <span className="text-sm font-black text-slate-700 dark:text-slate-200">{item.name}</span>
                              </div>
                              <div className="flex items-center gap-3">
-                                <span className="bg-white border border-slate-200 text-slate-900 text-[10px] font-black px-3 py-1.5 rounded-xl shadow-sm tracking-tighter">{item.count}</span>
-                                <AlertCircle className="w-4 h-4 text-orange-400" />
+                                <span className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-sm tracking-tighter">{item.count}</span>
+                                <AlertCircle className="w-4 h-4 text-orange-500" />
                              </div>
                           </div>
                        )) : (
-                          <div className="p-10 flex flex-col items-center justify-center text-center space-y-4">
-                             <div className="w-16 h-16 bg-agri-100 text-agri-600 rounded-3xl flex items-center justify-center">
-                                <CheckCircle2 className="w-8 h-8" />
+                          <div className="p-12 flex flex-col items-center justify-center text-center space-y-5">
+                             <div className="w-20 h-20 bg-agri-50 dark:bg-agri-900/20 text-agri-600 dark:text-agri-400 rounded-[2rem] flex items-center justify-center shadow-xl shadow-agri-600/10">
+                                <CheckCircle2 className="w-10 h-10" />
                              </div>
-                             <p className="text-sm font-black text-agri-900 italic">"Todo está en la nube"</p>
+                             <div className="space-y-1">
+                                <p className="text-lg font-display font-black text-agri-900 dark:text-white italic">"Todo está en la nube"</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tus registros están seguros</p>
+                             </div>
                           </div>
                        )}
                     </div>

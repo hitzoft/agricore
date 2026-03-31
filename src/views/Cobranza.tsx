@@ -181,29 +181,29 @@ const Cobranza = () => {
       {viewMode === 'list' ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-orange-100 flex items-center justify-between group hover:border-orange-200 transition-all">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-sm border border-orange-100 dark:border-orange-500/10 flex items-center justify-between group hover:border-orange-200 dark:hover:border-orange-500/30 transition-all">
               <div className="flex items-center gap-5">
-                <div className="bg-orange-50 text-orange-600 p-5 rounded-3xl group-hover:scale-110 transition-transform shadow-sm"><Wallet className="w-8 h-8" /></div>
+                <div className="bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 p-5 rounded-3xl group-hover:scale-110 transition-transform shadow-sm"><Wallet className="w-8 h-8" /></div>
                 <div>
-                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Saldo Pendiente (Filtro)</p>
-                  <h3 className="text-3xl font-display text-gray-800 tracking-tight">${saldoGlobal.toLocaleString()}</h3>
+                  <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Saldo Pendiente (Filtro)</p>
+                  <h3 className="text-3xl font-display text-gray-800 dark:text-orange-50 tracking-tight">${saldoGlobal.toLocaleString()}</h3>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-agri-100 flex items-center justify-between group hover:border-agri-200 transition-all">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-sm border border-agri-100 dark:border-agri-500/10 flex items-center justify-between group hover:border-agri-200 dark:hover:border-agri-500/30 transition-all">
               <div className="flex items-center gap-5">
-                <div className="bg-agri-50 text-agri-600 p-5 rounded-3xl group-hover:scale-110 transition-transform shadow-sm"><TrendingUp className="w-8 h-8" /></div>
+                <div className="bg-agri-50 dark:bg-agri-500/10 text-agri-600 dark:text-agri-400 p-5 rounded-3xl group-hover:scale-110 transition-transform shadow-sm"><TrendingUp className="w-8 h-8" /></div>
                 <div>
-                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Histórico Cobrado (Filtro)</p>
-                  <h3 className="text-3xl font-display text-gray-900 tracking-tight">${abonosGlobales.toLocaleString()}</h3>
+                  <p className="text-gray-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Histórico Cobrado (Filtro)</p>
+                  <h3 className="text-3xl font-display text-gray-900 dark:text-agri-50 tracking-tight">${abonosGlobales.toLocaleString()}</h3>
                 </div>
               </div>
             </div>
           </div>
 
           {/* FILTERS & SEARCH (Matching Gastos style) */}
-          <div className="bg-white p-3 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col xl:flex-row items-stretch xl:items-center gap-4 mb-8">
-             <div className="flex bg-gray-50 rounded-2xl p-1 shrink-0">
+          <div className="bg-white dark:bg-slate-900 p-3 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row items-stretch xl:items-center gap-4 mb-8">
+             <div className="flex bg-gray-50 dark:bg-slate-950 rounded-2xl p-1 shrink-0 border border-transparent dark:border-slate-800">
                {[
                  { id: 'period', label: 'Periodo' },
                  { id: 'month', label: 'Mes' },
@@ -212,13 +212,13 @@ const Cobranza = () => {
                  <button 
                    key={t.id}
                    onClick={() => setFilterType(t.id as any)}
-                   className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${filterType === t.id ? 'bg-white text-agri-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                   className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${filterType === t.id ? 'bg-white dark:bg-slate-800 text-agri-600 dark:text-agri-400 shadow-sm' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300'}`}
                  >
                    {t.label}
                  </button>
                ))}
              </div>
-             <div className="h-8 w-px bg-gray-100 hidden xl:block" />
+             <div className="h-8 w-px bg-gray-100 dark:bg-slate-800 hidden xl:block" />
              <div className="flex-1 min-w-0">
                {filterType === 'period' && (
                  <div className="flex gap-1 overflow-x-auto no-scrollbar">
@@ -231,7 +231,7 @@ const Cobranza = () => {
                      <button
                        key={p.id}
                        onClick={() => setSelectedPeriod(p.id as any)}
-                       className={`px-6 py-2.5 rounded-xl text-[10px] font-black whitespace-nowrap transition-all ${selectedPeriod === p.id ? 'bg-agri-50 text-agri-700' : 'text-gray-400 hover:text-gray-600'}`}
+                       className={`px-6 py-2.5 rounded-xl text-[10px] font-black whitespace-nowrap transition-all ${selectedPeriod === p.id ? 'bg-agri-50 dark:bg-agri-950/40 text-agri-700 dark:text-agri-400' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600'}`}
                      >
                        {p.label}
                      </button>
@@ -239,20 +239,20 @@ const Cobranza = () => {
                  </div>
                )}
                {filterType === 'month' && (
-                 <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="px-6 py-2.5 bg-gray-50 rounded-xl text-xs font-black text-gray-700 outline-none w-full xl:w-48" />
+                 <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="px-6 py-2.5 bg-gray-50 dark:bg-slate-950 rounded-xl text-xs font-black text-gray-700 dark:text-slate-300 outline-none w-full xl:w-48 dark:border dark:border-slate-800" />
                )}
                {filterType === 'range' && (
                  <div className="flex items-center gap-3">
-                   <input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} className="px-4 py-2 bg-gray-50 rounded-xl text-xs font-black text-gray-700" />
-                   <span className="text-gray-300">—</span>
-                   <input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} className="px-4 py-2 bg-gray-50 rounded-xl text-xs font-black text-gray-700" />
+                   <input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} className="px-4 py-2 bg-gray-50 dark:bg-slate-950 rounded-xl text-xs font-black text-gray-700 dark:text-slate-300 dark:border dark:border-slate-800" />
+                   <span className="text-gray-300 dark:text-slate-700">—</span>
+                   <input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} className="px-4 py-2 bg-gray-50 dark:bg-slate-950 rounded-xl text-xs font-black text-gray-700 dark:text-slate-300 dark:border dark:border-slate-800" />
                  </div>
                )}
              </div>
-             <div className="h-8 w-px bg-gray-100 hidden xl:block" />
+             <div className="h-8 w-px bg-gray-100 dark:bg-slate-800 hidden xl:block" />
              <div className="relative group xl:w-80">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-agri-600" />
-                <input placeholder="Buscar por folio o destino..." className="pl-12 pr-6 py-3.5 bg-gray-50 rounded-2xl text-sm font-bold text-gray-700 outline-none w-full" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 dark:text-slate-600 group-focus-within:text-agri-600" />
+                <input placeholder="Buscar por folio o destino..." className="pl-12 pr-6 py-3.5 bg-gray-50 dark:bg-slate-950 rounded-2xl text-sm font-bold text-gray-700 dark:text-slate-300 outline-none w-full dark:border dark:border-slate-800" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
              </div>
           </div>
 
@@ -268,17 +268,17 @@ const Cobranza = () => {
                   <div 
                     key={folio.id}
                     onClick={() => handleSelectVenta(folio.id)}
-                    className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm active:scale-95 transition-all overflow-hidden relative"
+                    className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-gray-100 dark:border-slate-800 shadow-sm active:scale-95 transition-all overflow-hidden relative"
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
-                        <div className={`p-3 rounded-2xl border ${estaLiquidado ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>
+                        <div className={`p-3 rounded-2xl border transition-colors ${estaLiquidado ? 'bg-green-50 dark:bg-agri-500/10 text-green-600 dark:text-agri-400 border-green-100 dark:border-agri-500/20' : 'bg-gray-50 dark:bg-slate-950 text-gray-400 dark:text-slate-500 border-gray-200 dark:border-slate-800'}`}>
                           <Receipt className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900 uppercase tracking-tight leading-none mb-1 text-sm">Folio {folio.folio}</p>
-                          <div className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-lg inline-block">
-                             <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                          <p className="font-bold text-slate-900 dark:text-agri-50 uppercase tracking-tight leading-none mb-1 text-sm">Folio {folio.folio}</p>
+                          <div className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-lg inline-block">
+                             <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest leading-none">
                                 {temporadas.find(t => t.id === folio.seasonId)?.nombre || 'Ciclo Indefinido'}
                              </span>
                           </div>
@@ -289,14 +289,14 @@ const Cobranza = () => {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4 py-4 border-y border-gray-50/50">
+                    <div className="grid grid-cols-2 gap-4 mb-4 py-4 border-y border-gray-50/50 dark:border-slate-800/50">
                       <div>
-                        <p className="text-gray-400 text-[8px] font-black uppercase tracking-widest mb-1">Destino</p>
-                        <p className="text-xs font-bold text-slate-700 truncate">{folio.destino}</p>
+                        <p className="text-gray-400 dark:text-slate-500 text-[8px] font-black uppercase tracking-widest mb-1">Destino</p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{folio.destino}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-gray-400 text-[8px] font-black uppercase tracking-widest mb-1">Monto Total</p>
-                        <p className="text-sm font-black text-slate-900 italic">
+                        <p className="text-gray-400 dark:text-slate-500 text-[8px] font-black uppercase tracking-widest mb-1">Monto Total</p>
+                        <p className="text-sm font-black text-slate-900 dark:text-agri-100 italic">
                           {folio.montoTotal === 0 ? 'A DEFINIR' : `$${folio.montoTotal.toLocaleString()}`}
                         </p>
                       </div>
@@ -304,12 +304,12 @@ const Cobranza = () => {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-gray-400 text-[8px] font-black uppercase tracking-widest mb-1 font-sans">Saldo Pendiente</p>
-                        <p className={`text-2xl font-black italic tracking-tighter ${estaLiquidado ? 'text-green-600' : 'text-orange-600'}`}>
+                        <p className="text-gray-400 dark:text-slate-500 text-[8px] font-black uppercase tracking-widest mb-1 font-sans">Saldo Pendiente</p>
+                        <p className={`text-2xl font-black italic tracking-tighter ${estaLiquidado ? 'text-green-600 dark:text-agri-400' : 'text-orange-600 dark:text-orange-400'}`}>
                           ${saldo.toLocaleString()}
                         </p>
                       </div>
-                      <div className="bg-agri-50 text-agri-600 p-3 rounded-2xl">
+                      <div className="bg-agri-50 dark:bg-agri-500/10 text-agri-600 dark:text-agri-400 p-3 rounded-2xl">
                         <History className="w-5 h-5" />
                       </div>
                     </div>
@@ -319,19 +319,19 @@ const Cobranza = () => {
            </div>
 
           {/* DESKTOP TABLE (Hidden on Mobile) */}
-          <div className="hidden md:block bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-gray-50/50 text-gray-400 font-bold text-[10px] uppercase tracking-widest border-b border-gray-100">
+                <thead className="bg-gray-50/50 dark:bg-slate-950/50 text-gray-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-slate-800">
                   <tr>
                     <th className="px-8 py-5">Información de Venta</th>
                     <th className="px-8 py-5">Estatus Financiero</th>
                     <th className="px-8 py-5 text-right">Monto Total</th>
                     <th className="px-8 py-5 text-right">Pagado</th>
-                    <th className="px-8 py-5 text-right text-orange-600">Saldo</th>
+                    <th className="px-8 py-5 text-right text-orange-600 dark:text-orange-400">Saldo</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
                   {filteredFolios.map(folio => {
                     const cobrado = calcularPagado(folio.abonos);
                     const saldo = folio.montoTotal > 0 ? folio.montoTotal - cobrado : 0;
@@ -341,18 +341,18 @@ const Cobranza = () => {
                       <tr 
                         key={folio.id} 
                         onClick={() => handleSelectVenta(folio.id)}
-                        className="transition-all cursor-pointer hover:bg-agri-50/20 active:scale-[0.99]"
+                        className="transition-all cursor-pointer hover:bg-agri-50/20 dark:hover:bg-slate-800/40 active:scale-[0.99]"
                       >
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-2xl border transition-colors ${estaLiquidado ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>
+                            <div className={`p-3 rounded-2xl border transition-colors ${estaLiquidado ? 'bg-green-50 dark:bg-agri-500/10 text-green-600 dark:text-agri-400 border-green-200 dark:border-agri-500/20' : 'bg-gray-50 dark:bg-slate-950 text-gray-400 dark:text-slate-500 border-gray-200 dark:border-slate-800'}`}>
                               <Receipt className="w-5 h-5" />
                             </div>
                             <div>
-                               <p className="font-bold text-slate-900 uppercase tracking-tight">Folio {folio.folio}</p>
-                               <p className="text-agri-400 text-[10px] font-bold uppercase tracking-widest">{folio.destino} • {folio.peso}</p>
-                               <div className="mt-1 px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-lg inline-block">
-                                   <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                               <p className="font-bold text-slate-900 dark:text-agri-50 uppercase tracking-tight">Folio {folio.folio}</p>
+                               <p className="text-agri-400 dark:text-agri-500 text-[10px] font-bold uppercase tracking-widest">{folio.destino} • {folio.peso}</p>
+                               <div className="mt-1 px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-lg inline-block">
+                                   <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest leading-none">
                                       {temporadas.find(t => t.id === folio.seasonId)?.nombre || 'Ciclo Indefinido'}
                                    </span>
                                 </div>
@@ -369,16 +369,16 @@ const Cobranza = () => {
                             );
                           })()}
                         </td>
-                        <td className="px-8 py-5 text-right font-black text-gray-900 italic">
+                        <td className="px-8 py-5 text-right font-black text-gray-900 dark:text-slate-100 italic">
                           {folio.montoTotal === 0 ? (
-                            <span className="text-gray-300">A DEFINIR</span>
+                            <span className="text-gray-300 dark:text-slate-700">A DEFINIR</span>
                           ) : `$${folio.montoTotal.toLocaleString()}`}
                         </td>
-                        <td className="px-8 py-5 text-right text-gray-400 font-bold">
+                        <td className="px-8 py-5 text-right text-gray-400 dark:text-slate-500 font-bold">
                           {folio.montoTotal === 0 ? '-' : `$${cobrado.toLocaleString()}`}
                         </td>
                         <td className="px-8 py-5 text-right">
-                          <span className={`font-black px-3 py-1.5 rounded-xl text-[11px] uppercase tracking-widest ${estaLiquidado ? 'text-green-600 bg-green-50 border border-green-100' : 'text-orange-600 bg-orange-50 border border-orange-100'}`}>
+                          <span className={`font-black px-3 py-1.5 rounded-xl text-[11px] uppercase tracking-widest ${estaLiquidado ? 'text-green-600 bg-green-50 dark:bg-agri-500/10 border border-green-100 dark:border-agri-500/20' : 'text-orange-600 bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20'}`}>
                             ${saldo.toLocaleString()}
                           </span>
                         </td>
@@ -398,43 +398,43 @@ const Cobranza = () => {
                 onClick={handleBackToList}
                 className="group flex items-center gap-3 text-gray-400 hover:text-gray-900 font-bold text-[10px] uppercase tracking-widest transition-all"
               >
-                <div className="p-2 rounded-xl bg-white border border-gray-200 group-hover:bg-gray-50 transition-colors">
+                <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 group-hover:bg-gray-50 dark:group-hover:bg-slate-700 transition-colors">
                   <X className="w-4 h-4 rotate-90" />
                 </div>
                 Regresar
               </button>
                <div className="flex items-center gap-3">
-                  {selectedVenta.montoTotal === 0 ? (
-                    <button 
-                      onClick={() => handleOpenModal('liquidar')}
-                      className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all active:scale-95"
-                    >
-                      <Receipt className="w-4 h-4" /> Definir Precio
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => handleOpenModal('abono')}
-                      disabled={(selectedVenta.montoTotal - calcularPagado(selectedVenta.abonos)) <= 0}
-                      className="flex items-center gap-3 bg-agri-600 hover:bg-agri-700 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-agri-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Banknote className="w-4 h-4" /> Registrar Abono
-                    </button>
-                  )}
+                   {selectedVenta.montoTotal === 0 ? (
+                     <button 
+                       onClick={() => handleOpenModal('liquidar')}
+                       className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all active:scale-95"
+                     >
+                       <Receipt className="w-4 h-4" /> Definir Precio
+                     </button>
+                   ) : (
+                     <button 
+                       onClick={() => handleOpenModal('abono')}
+                       disabled={(selectedVenta.montoTotal - calcularPagado(selectedVenta.abonos)) <= 0}
+                       className="flex items-center gap-3 bg-agri-600 hover:bg-agri-700 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-agri-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                       <Banknote className="w-4 h-4" /> Registrar Pago
+                     </button>
+                   )}
                </div>
-           </div>
+            </div>
 
-           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 flex flex-col justify-between">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-800 p-8 flex flex-col justify-between">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-10">
                       <div className="flex items-center gap-6">
                           <div className="bg-agri-600 text-white p-5 rounded-[24px] shadow-lg shadow-agri-600/20">
                               <Receipt className="w-8 h-8" />
                           </div>
                           <div>
-                              <h2 className="text-3xl font-display text-slate-800 mb-1 leading-none">Folio {selectedVenta.folio}</h2>
-                              <p className="text-agri-400 font-bold text-xs uppercase tracking-[0.2em] mb-2">{selectedVenta.destino} • {selectedVenta.peso}</p>
-                              <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-xl inline-block">
-                                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                              <h2 className="text-3xl font-display text-slate-800 dark:text-agri-50 mb-1 leading-none">Folio {selectedVenta.folio}</h2>
+                              <p className="text-agri-400 dark:text-agri-500 font-bold text-xs uppercase tracking-[0.2em] mb-2">{selectedVenta.destino} • {selectedVenta.peso}</p>
+                              <div className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl inline-block">
+                                  <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest leading-none">
                                      {temporadas.find(t => t.id === selectedVenta.seasonId)?.nombre || 'Ciclo Indefinido'}
                                   </span>
                                </div>
@@ -452,20 +452,20 @@ const Cobranza = () => {
                       </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 pt-8 border-t border-gray-100 dark:border-slate-800">
                       <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Monto Total</p>
-                          <p className="text-2xl font-black text-slate-900 italic tracking-tighter leading-none">
+                          <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mb-2">Monto Total</p>
+                          <p className="text-2xl font-black text-slate-900 dark:text-slate-50 italic tracking-tighter leading-none">
                              {selectedVenta.montoTotal > 0 ? `$${selectedVenta.montoTotal.toLocaleString()}` : 'PENDIENTE'}
                           </p>
                       </div>
                       <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Cobrado</p>
-                          <p className="text-2xl font-black text-agri-600 italic tracking-tighter leading-none">${calcularPagado(selectedVenta.abonos).toLocaleString()}</p>
+                          <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mb-2">Cobrado</p>
+                          <p className="text-2xl font-black text-agri-600 dark:text-agri-400 italic tracking-tighter leading-none">${calcularPagado(selectedVenta.abonos).toLocaleString()}</p>
                       </div>
                       <div className="col-span-2 sm:col-span-1">
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Saldo</p>
-                          <p className="text-2xl font-black text-orange-600 italic tracking-tighter leading-none">
+                          <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mb-2">Saldo</p>
+                          <p className="text-2xl font-black text-orange-600 dark:text-orange-400 italic tracking-tighter leading-none">
                              {selectedVenta.montoTotal > 0 ? `$${(selectedVenta.montoTotal - calcularPagado(selectedVenta.abonos)).toLocaleString()}` : '---'}
                           </p>
                       </div>
@@ -513,21 +513,21 @@ const Cobranza = () => {
                       <TrendingUp className="w-48 h-48" />
                   </div>
                </div>
-           </div>
+            </div>
 
-           <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden mb-8">
-              <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden mb-8">
+              <div className="px-8 py-6 border-b border-gray-50 dark:border-slate-800/50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <History className="w-5 h-5 text-gray-400" />
-                    <h3 className="font-black text-slate-900 italic uppercase tracking-tight">Historial de Abonos</h3>
+                    <History className="w-5 h-5 text-gray-400 dark:text-slate-500" />
+                    <h3 className="font-black text-slate-900 dark:text-agri-50 italic uppercase tracking-tight">Historial de Pagos</h3>
                   </div>
-                  <span className="bg-gray-50 text-gray-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                  <span className="bg-gray-50 dark:bg-slate-950 text-gray-400 dark:text-slate-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-gray-100 dark:border-slate-800">
                     {selectedVenta.abonos?.length || 0} Registros
                   </span>
               </div>
               <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm whitespace-nowrap">
-                      <thead className="bg-gray-50/50 text-gray-400 font-bold text-[10px] uppercase tracking-[0.15em]">
+                      <thead className="bg-gray-50/50 dark:bg-slate-950/50 text-gray-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-[0.15em]">
                           <tr>
                               <th className="px-8 py-4">Fecha</th>
                               <th className="px-8 py-4">Concepto / Referencia</th>
@@ -536,38 +536,38 @@ const Cobranza = () => {
                               <th className="px-8 py-4 text-center">Estatus</th>
                           </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50">
+                      <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
                           {selectedVenta.abonos?.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)).map(abono => (
-                              <tr key={abono.id} className="border-b border-gray-50/50 hover:bg-gray-50/30 transition-colors">
+                              <tr key={abono.id} className="border-b border-gray-50/50 dark:border-slate-800/30 hover:bg-gray-50/30 dark:hover:bg-slate-800/40 transition-colors">
                                   <td className="px-8 py-5">
-                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{abono.fecha}</p>
-                                      <p className="text-xs font-bold text-slate-800 italic uppercase tracking-tighter">Ref: {abono.id.slice(0, 8)}</p>
+                                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">{abono.fecha}</p>
+                                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100 italic uppercase tracking-tighter">Ref: {abono.id.slice(0, 8)}</p>
                                   </td>
                                     <td className="px-8 py-5">
                                       <div className="flex items-center gap-3">
-                                          <div className={`p-2 rounded-xl ${abono.metodo === 'Efectivo' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
+                                          <div className={`p-2 rounded-xl ${abono.metodo === 'Efectivo' ? 'bg-green-50 dark:bg-agri-500/10 text-green-600 dark:text-agri-400' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'}`}>
                                             {abono.metodo === 'Efectivo' ? <Banknote className="w-4 h-4"/> : <CreditCard className="w-4 h-4"/>}
                                           </div>
                                           <div>
-                                            <p className="font-bold text-slate-900 text-xs uppercase tracking-tight">{abono.nota || 'Abono a Venta'}</p>
-                                            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">{abono.metodo}</p>
+                                            <p className="font-bold text-slate-900 dark:text-agri-100 text-xs uppercase tracking-tight">{abono.nota || 'Pago a Venta'}</p>
+                                            <p className="text-[10px] text-gray-400 dark:text-slate-500 font-medium uppercase tracking-widest">{abono.metodo}</p>
                                           </div>
                                       </div>
                                     </td>
-                                  <td className="px-8 py-5 text-gray-500 font-medium">
+                                  <td className="px-8 py-5 text-gray-500 dark:text-slate-400 font-medium">
                                       {abono.cuentaId ? (cuentas.find(c => c.id === abono.cuentaId)?.nombre || 'BANCO') : 'CAJA EFECTIVO'}
                                   </td>
-                                  <td className="px-8 py-5 text-right font-black text-slate-900 italic">
+                                  <td className="px-8 py-5 text-right font-black text-slate-900 dark:text-agri-50 italic">
                                       ${abono.monto.toLocaleString()}
                                   </td>
                                   <td className="px-8 py-5 text-center">
-                                      <span className="bg-green-50 text-green-600 border border-green-100 px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest">Aplicado</span>
+                                      <span className="bg-green-50 dark:bg-agri-500/10 text-green-600 dark:text-agri-400 border border-green-100 dark:border-agri-500/20 px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest">Aplicado</span>
                                   </td>
                               </tr>
                           ))}
                           {(!selectedVenta.abonos || selectedVenta.abonos.length === 0) && (
                               <tr>
-                                  <td colSpan={5} className="py-20 text-center text-gray-300 font-bold uppercase tracking-widest italic">No hay abonos registrados</td>
+                                  <td colSpan={5} className="py-20 text-center text-gray-300 dark:text-slate-700 font-bold uppercase tracking-widest italic">No hay pagos registrados</td>
                               </tr>
                           )}
                       </tbody>

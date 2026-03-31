@@ -252,57 +252,48 @@ const Ventas = () => {
 
       {/* LIST VIEW */}
       {currentView === 'list' && (
-        <div className="bg-white rounded-[3rem] border border-agri-100 overflow-hidden animate-in slide-in-from-bottom-6 duration-500 shadow-sm">
-          <div className="p-8 border-b border-agri-50 bg-agri-50/20 flex flex-col sm:flex-row justify-between items-center gap-6">
-             <div className="flex bg-white/60 p-1 rounded-2xl border border-agri-100 shadow-sm w-full sm:w-auto">
+        <div className="space-y-8 animate-in slide-in-from-bottom-6 duration-500">
+          <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
+             <div className="flex bg-white/80 dark:bg-slate-900/50 p-1.5 rounded-2xl border border-agri-100 dark:border-slate-800 shadow-sm backdrop-blur-md w-full lg:w-auto">
                 {['Todos', 'Nacional', 'Exportacion'].map((tab) => (
                    <button 
                      key={tab}
                      onClick={() => setActiveTab(tab as any)}
                      className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                       activeTab === tab ? 'bg-agri-600 text-white shadow-lg shadow-agri-600/20' : 'text-gray-400 hover:text-agri-600'
+                       activeTab === tab 
+                        ? 'bg-agri-600 text-white shadow-lg shadow-agri-600/20' 
+                        : 'text-gray-400 dark:text-slate-500 hover:text-agri-600 dark:hover:text-agri-400'
                      }`}
                    >
                      {tab}
                    </button>
                 ))}
              </div>
-             <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
-               <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar folio..." 
-                    className="w-full bg-white border border-agri-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-agri-500/20 transition-all"
-                  />
-               </div>
-
-               <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar folio..." 
-                    className="w-full bg-white border border-agri-100 rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-agri-500/20 transition-all"
-                  />
-               </div>
+             
+             <div className="relative w-full lg:w-80 group">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-agri-500 transition-colors" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar folio o cliente..." 
+                  className="w-full bg-white dark:bg-slate-900 border border-agri-100 dark:border-slate-800 rounded-2xl pl-12 pr-6 py-4 text-xs font-bold outline-none focus:ring-4 focus:ring-agri-500/10 transition-all shadow-sm"
+                />
              </div>
           </div>
 
-          <div className="p-8">
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                {filteredFolios.map((folio) => (
                  <div 
                    key={folio.id}
                    onClick={() => handleSelectVenta(folio.id)}
-                   className="group relative bg-white border border-agri-100/50 p-6 rounded-[2.5rem] hover:border-agri-400 hover:shadow-xl hover:shadow-agri-900/5 transition-all cursor-pointer flex flex-col justify-between h-full animate-in fade-in"
+                   className="group relative bg-white dark:bg-slate-900 border border-agri-100/50 dark:border-slate-800 p-8 rounded-[2.5rem] hover:border-agri-400 dark:hover:border-agri-500/50 shadow-sm hover:shadow-2xl hover:shadow-agri-900/10 transition-all cursor-pointer flex flex-col justify-between h-full animate-in fade-in"
                  >
                     <div className="flex justify-between items-start mb-6">
                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-agri-50 rounded-2xl flex items-center justify-center text-agri-600 group-hover:bg-agri-600 group-hover:text-white transition-all">
+                          <div className="w-12 h-12 bg-agri-50 dark:bg-agri-950/30 rounded-2xl flex items-center justify-center text-agri-600 dark:text-agri-400 group-hover:bg-agri-600 dark:group-hover:bg-agri-500 group-hover:text-white transition-all">
                              <Truck className="w-6 h-6" />
                           </div>
                           <div>
-                             <h4 className="font-display text-agri-900 text-lg leading-none">{folio.folio}</h4>
+                             <h4 className="font-display text-agri-900 dark:text-agri-50 text-lg leading-none">{folio.folio}</h4>
                              <div className="flex items-center gap-2 mt-1">
                                <p className="text-[9px] font-black text-agri-400 uppercase tracking-widest italic">{folio.fecha}</p>
                              </div>
@@ -316,32 +307,32 @@ const Ventas = () => {
                     </div>
 
                     <div className="space-y-4 mb-6">
-                       <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-agri-100 transition-all">
+                       <div className="flex items-center gap-3 bg-gray-50/50 dark:bg-slate-800/50 p-3 rounded-2xl border border-gray-100 dark:border-slate-700/50 group-hover:bg-white dark:group-hover:bg-slate-800 group-hover:border-agri-100 dark:group-hover:border-agri-500/30 transition-all">
                           <MapPin className="w-4 h-4 text-agri-400" />
-                          <span className="text-xs font-bold text-gray-600 truncate">{folio.destino}</span>
+                          <span className="text-xs font-bold text-gray-600 dark:text-slate-300 truncate">{folio.destino}</span>
                        </div>
                        <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-gray-50/50 p-3 rounded-2xl text-center flex flex-col gap-1 border border-transparent group-hover:border-agri-50 transition-all">
-                             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Variedad</span>
-                             <span className="text-[11px] font-black text-agri-900 uppercase truncate">{folio.variedad}</span>
-                             <div className="mt-1.5 px-2 py-1 bg-indigo-50 border border-indigo-100 rounded-lg">
-                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                          <div className="bg-gray-50/50 dark:bg-slate-800/50 p-3 rounded-2xl text-center flex flex-col gap-1 border border-transparent group-hover:border-agri-50 dark:group-hover:border-agri-500/10 transition-all">
+                             <span className="text-[8px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest leading-none">Variedad</span>
+                             <span className="text-[11px] font-black text-agri-900 dark:text-agri-50 uppercase truncate">{folio.variedad}</span>
+                             <div className="mt-1.5 px-2 py-1 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-lg">
+                                <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest leading-none">
                                    {temporadas.find(t => t.id === folio.seasonId)?.nombre || 'Ciclo Indefinido'}
                                 </span>
                              </div>
                           </div>
-                          <div className="bg-gray-50/50 p-3 rounded-2xl text-center flex flex-col gap-1 border border-transparent group-hover:border-agri-50 transition-all">
-                             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Peso Neto</span>
-                             <span className="text-[11px] font-black text-agri-900">{folio.peso} <span className="text-[8px] text-gray-400">KG</span></span>
+                          <div className="bg-gray-50/50 dark:bg-slate-800/50 p-3 rounded-2xl text-center flex flex-col gap-1 border border-transparent group-hover:border-agri-50 dark:group-hover:border-agri-500/10 transition-all">
+                             <span className="text-[8px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest leading-none">Peso Neto</span>
+                             <span className="text-[11px] font-black text-agri-900 dark:text-agri-50">{folio.peso} <span className="text-[8px] text-gray-400 dark:text-slate-500">KG</span></span>
                           </div>
                        </div>
                     </div>
 
                     <div className="pt-6 border-t border-agri-50 flex items-center justify-between">
                        <div>
-                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Monto de Venta</p>
-                          <p className="text-lg font-display text-agri-900 italic">
-                            {folio.montoTotal > 0 ? `$${folio.montoTotal.toLocaleString()}` : <span className="text-orange-400">Por definir</span>}
+                          <p className="text-[8px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Monto de Venta</p>
+                          <p className="text-lg font-display text-agri-900 dark:text-agri-50 italic">
+                            {folio.montoTotal > 0 ? `$${folio.montoTotal.toLocaleString()}` : <span className="text-orange-400 dark:text-orange-500">Por definir</span>}
                           </p>
                        </div>
                        <div className="w-10 h-10 rounded-full border border-agri-100 flex items-center justify-center text-agri-300 group-hover:text-agri-600 group-hover:border-agri-400 transition-all">
@@ -358,7 +349,6 @@ const Ventas = () => {
                     <p className="text-agri-400 font-bold italic">No se encontraron folios con este filtro.</p>
                   </div>
                )}
-             </div>
           </div>
         </div>
       )}
@@ -579,11 +569,9 @@ const Ventas = () => {
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
               
               {/* Info Principal */}
-              <div className="lg:col-span-2 bg-white rounded-[3rem] p-10 border border-agri-100 shadow-sm relative overflow-hidden">
-                 <div className="absolute right-[-10%] top-[-10%] w-64 h-64 bg-agri-50 rounded-full blur-3xl opacity-50" />
-                 
-                 <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-12">
+              <div className="lg:col-span-2 space-y-8 animate-in slide-in-from-left-6 duration-500">
+                 <div className="relative group">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                        <div className="flex items-center gap-6">
                           <div className={`p-5 rounded-[2rem] shadow-xl transition-colors ${
                             selectedFolio.status === 'Liquidado' ? 'bg-agri-600 text-white shadow-agri-200' : 'bg-blue-600 text-white shadow-blue-200'
@@ -608,7 +596,7 @@ const Ventas = () => {
                        <div className="flex gap-3">
                           <button 
                             onClick={() => handleOpenModal('status', selectedFolio.id)}
-                            className="bg-white border border-agri-100 px-6 py-4 rounded-2xl text-agri-600 font-black text-[10px] uppercase tracking-widest hover:bg-agri-50 transition-all shadow-sm flex items-center gap-2"
+                            className="bg-white dark:bg-slate-900 border border-agri-100 dark:border-slate-800 px-6 py-4 rounded-2xl text-agri-600 dark:text-agri-400 font-black text-[10px] uppercase tracking-widest hover:bg-agri-50 dark:hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2"
                           >
                             <Clock className="w-4 h-4" />
                             Cambiar Estado
@@ -616,7 +604,7 @@ const Ventas = () => {
                           {selectedFolio.montoTotal === 0 && (
                             <button 
                               onClick={() => handleOpenModal('liquidar', selectedFolio.id)}
-                               className="bg-agri-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-agri-600/20 active:scale-95 transition-all"
+                               className="bg-agri-600 dark:bg-agri-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-agri-600/20 active:scale-95 transition-all"
                             >
                               Definir Precio
                             </button>
@@ -624,7 +612,7 @@ const Ventas = () => {
                        </div>
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 py-10 border-y border-agri-50 mb-10">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 py-10 border-y border-agri-100 dark:border-slate-800 mb-10 bg-white/40 dark:bg-slate-900/40 rounded-[2rem] px-8">
                        <div>
                           <p className="text-[9px] font-black text-agri-400 uppercase tracking-widest mb-2">Comprador</p>
                           <p className="text-sm font-bold text-agri-900 truncate">
@@ -646,23 +634,24 @@ const Ventas = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                       <div className="bg-gray-50/50 p-6 rounded-[2rem] border border-gray-100">
+                       <div className="bg-white/60 dark:bg-slate-900/60 p-8 rounded-[2rem] border border-agri-100 dark:border-slate-800 shadow-sm">
                           <div className="flex items-center gap-3 mb-4">
-                             <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center border border-gray-100">
-                                <MapPin className="w-4 h-4 text-agri-500" />
+                             <div className="w-10 h-10 bg-agri-50 dark:bg-agri-950/30 rounded-xl flex items-center justify-center border border-agri-100/50 dark:border-agri-500/20">
+                                <MapPin className="w-5 h-5 text-agri-500" />
                              </div>
-                             <p className="text-[10px] font-black text-agri-400 uppercase tracking-widest leading-none">Punto de Entrega</p>
+                             <p className="text-[10px] font-black text-agri-400 dark:text-slate-500 uppercase tracking-widest leading-none">Punto de Entrega</p>
                           </div>
-                          <p className="text-sm font-bold text-agri-900 leading-relaxed italic">{selectedFolio.destino}</p>
+                          <p className="text-sm font-bold text-agri-900 dark:text-agri-50 leading-relaxed italic">{selectedFolio.destino}</p>
                        </div>
-                       <div className="bg-agri-50/50 p-6 rounded-[2rem] border border-agri-100 flex items-center justify-between">
-                          <div>
-                             <p className="text-[10px] font-black text-agri-400 uppercase tracking-widest mb-1">Monto Total Bruto</p>
-                             <p className={`text-2xl font-display italic ${selectedFolio.montoTotal > 0 ? 'text-agri-900' : 'text-orange-400'}`}>
+                       <div className="bg-agri-900 dark:bg-agri-600 p-8 rounded-[2rem] shadow-xl flex items-center justify-between group overflow-hidden relative">
+                          <div className="absolute right-[-10%] top-[-10%] w-32 h-32 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-all" />
+                          <div className="relative z-10">
+                             <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1">Monto Total Bruto</p>
+                             <p className={`text-2xl font-display italic text-white`}>
                                 {selectedFolio.montoTotal > 0 ? `$${selectedFolio.montoTotal.toLocaleString()}` : 'Por definir'}
                              </p>
                           </div>
-                          <DollarSign className="w-8 h-8 text-agri-200" />
+                          <DollarSign className="w-10 h-10 text-white/20 relative z-10" />
                        </div>
                     </div>
                  </div>
@@ -710,29 +699,29 @@ const Ventas = () => {
                  </div>
 
                  {/* Timeline History */}
-                 <div className="bg-white rounded-[3rem] p-8 border border-agri-100 shadow-sm">
-                    <div className="flex items-center gap-3 mb-8">
-                       <Clock className="w-5 h-5 text-agri-300" />
-                       <h3 className="text-[10px] font-black text-agri-400 uppercase tracking-[0.2em]">Historial de Eventos</h3>
-                    </div>
-                    <div className="space-y-8 relative before:content-[''] before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[1.5px] before:bg-agri-50">
-                       {(selectedFolio.statusHistory || []).slice().reverse().map((h: any, idx: number) => (
-                         <div key={idx} className="relative pl-10 group">
-                            <div className={`absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-white shadow-sm ring-1 ring-agri-50 transition-colors ${idx === 0 ? 'bg-agri-600' : 'bg-agri-100'}`} />
-                            <div>
-                               <div className="flex justify-between items-center mb-1">
-                                  <p className={`text-[10px] font-black uppercase tracking-widest ${idx === 0 ? 'text-agri-700' : 'text-gray-400'}`}>{h.status}</p>
-                                  <span className="text-[8px] font-bold text-gray-300 uppercase">{h.fecha}</span>
-                               </div>
-                               {h.nota && <p className="text-[11px] text-gray-400 font-medium italic italic leading-relaxed">{h.nota}</p>}
-                            </div>
-                         </div>
-                       ))}
-                       {(!selectedFolio.statusHistory || selectedFolio.statusHistory.length === 0) && (
-                         <div className="pl-10 text-gray-300 text-[10px] font-bold italic">Esperando primer despacho...</div>
-                       )}
-                    </div>
-                 </div>
+                 <div className="space-y-6">
+                     <div className="flex items-center gap-3 px-4">
+                        <Clock className="w-5 h-5 text-agri-300 dark:text-slate-600" />
+                        <h3 className="text-[10px] font-black text-agri-400 dark:text-slate-500 uppercase tracking-[0.2em]">Historial de Eventos</h3>
+                     </div>
+                     <div className="space-y-8 relative before:content-[''] before:absolute before:left-7 before:top-2 before:bottom-2 before:w-[1.5px] before:bg-agri-100 dark:before:bg-slate-800 ml-4">
+                        {(selectedFolio.statusHistory || []).slice().reverse().map((h: any, idx: number) => (
+                          <div key={idx} className="relative pl-12 group">
+                             <div className={`absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-white dark:border-slate-900 shadow-sm ring-1 ring-agri-50 dark:ring-slate-800 transition-colors ${idx === 0 ? 'bg-agri-600 dark:bg-agri-500' : 'bg-agri-100 dark:bg-slate-800'}`} />
+                             <div className="bg-white/40 dark:bg-slate-900/40 p-5 rounded-2xl border border-agri-50 dark:border-slate-800/50 hover:border-agri-100 dark:hover:border-slate-700 transition-all">
+                                <div className="flex justify-between items-center mb-1">
+                                   <p className={`text-[10px] font-black uppercase tracking-widest ${idx === 0 ? 'text-agri-700 dark:text-agri-400' : 'text-gray-400 dark:text-slate-500'}`}>{h.status}</p>
+                                   <span className="text-[8px] font-bold text-gray-300 dark:text-slate-600 uppercase">{h.fecha}</span>
+                                </div>
+                                {h.nota && <p className="text-[11px] text-gray-400 dark:text-slate-500 font-medium italic leading-relaxed">{h.nota}</p>}
+                             </div>
+                          </div>
+                        ))}
+                        {(!selectedFolio.statusHistory || selectedFolio.statusHistory.length === 0) && (
+                          <div className="pl-12 text-gray-300 dark:text-slate-700 text-[10px] font-bold italic">Esperando primer despacho...</div>
+                        )}
+                     </div>
+                  </div>
               </div>
            </div>
         </div>

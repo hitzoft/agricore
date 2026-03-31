@@ -6,8 +6,6 @@ import {
   query, 
   where,
   runTransaction,
-  increment,
-  getDoc,
   getDocs
 } from 'firebase/firestore';
 import { db as firebaseDb, auth } from './firebase';
@@ -129,7 +127,7 @@ async function checkAndRefolio(data: any): Promise<any> {
   const user = auth.currentUser;
   if (!user || !data.folio || !data.folio.startsWith('V-')) return data;
 
-  return await runTransaction(firebaseDb, async (transaction) => {
+  return await runTransaction(firebaseDb, async () => {
     // 1. Verificar si el folio actual ya existe para este usuario
     const q = query(
       collection(firebaseDb, 'folios'),

@@ -1,20 +1,22 @@
-import React, { useState } from 'react';
-import { 
-  LogIn, 
-  AlertCircle
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || "/";
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, navigate]);
+
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const handleGoogleLogin = async () => {
     setIsSubmitting(true);
@@ -39,8 +41,8 @@ const Login: React.FC = () => {
       <div className="w-full max-w-md relative z-10">
         <div className="bg-slate-900/50 backdrop-blur-2xl border border-white/5 p-8 rounded-[2.5rem] shadow-2xl">
           <div className="flex flex-col items-center mb-12">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-agri-500/20 border-4 border-slate-800/30 overflow-hidden">
-               <img src="/logo.png" alt="Agricore Logo" className="w-full h-full object-cover scale-[2.5]" />
+            <div className="w-30 h-30 bg-white rounded-[2.5rem] flex items-center justify-center mb-6 shadow-2xl border-4 border-white/10 group transition-all hover:rotate-12 duration-500 p-2 overflow-hidden">
+               <img src="/favicon.png" alt="Agricore Logo" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-3xl font-black text-white tracking-tight">Agricore <span className="text-agri-400">Web</span></h1>
             <p className="text-slate-400 mt-2 font-medium tracking-wide uppercase text-[10px]">Gestión Agrícola Inteligente</p>

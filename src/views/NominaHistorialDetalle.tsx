@@ -98,7 +98,7 @@ const NominaHistorialDetalle = () => {
       <div className="p-8 text-center">
         <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-gray-800">Sin registros para esta semana</h2>
-        <button onClick={() => navigate('/nomina')} className="mt-4 text-agri-600 font-medium hover:underline flex items-center gap-2 justify-center w-full">
+        <button onClick={() => navigate('/dashboard/nomina')} className="mt-4 text-agri-600 font-medium hover:underline flex items-center gap-2 justify-center w-full">
           <ChevronLeft className="w-4 h-4" /> Volver a Nómina
         </button>
       </div>
@@ -110,45 +110,45 @@ const NominaHistorialDetalle = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
-          onClick={() => navigate('/nomina')}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 font-medium transition-colors group"
+          onClick={() => navigate('/dashboard/nomina')}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-100 font-medium transition-colors group"
         >
-          <div className="p-2 rounded-lg bg-white border border-gray-200 group-hover:border-gray-300 shadow-sm">
+          <div className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 group-hover:border-gray-300 dark:group-hover:border-slate-600 shadow-sm">
             <ChevronLeft className="w-5 h-5" />
           </div>
           Historial de Nóminas
         </button>
         <div className="text-right">
-          <p className="text-sm font-display text-agri-400 italic leading-tight mb-1">
+          <p className="text-sm font-display text-agri-400 dark:text-slate-500 italic leading-tight mb-1">
             Semana {semana?.split('-W')[1]} — {semana?.split('-W')[0]}
           </p>
-          <h1 className="text-5xl md:text-6xl font-display text-agri-900 tracking-tight">
+          <h1 className="text-5xl md:text-6xl font-display text-agri-900 dark:text-agri-100 tracking-tight">
             {getDatesFromWeek(semana || '')}
           </h1>
         </div>
       </div>
 
       {/* Grand Summary Card */}
-      <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mb-8 relative overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-gray-100 dark:border-slate-800 shadow-sm mb-8 relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
             <div>
-              <p className="text-[10px] font-bold text-agri-400 uppercase tracking-widest mb-1.5 leading-none">Total de la Semana</p>
+              <p className="text-[10px] font-bold text-agri-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 leading-none">Total de la Semana</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-display text-agri-900 leading-none">${grandPagado.toLocaleString()}</span>
-                <span className="text-xl font-bold text-gray-400">/ ${grandTotal.toLocaleString()}</span>
+                <span className="text-5xl font-display text-agri-900 dark:text-agri-50 leading-none">${grandPagado.toLocaleString()}</span>
+                <span className="text-xl font-bold text-gray-400 dark:text-slate-500">/ ${grandTotal.toLocaleString()}</span>
               </div>
-              <p className="text-sm text-gray-500 mt-1">Pendiente: <strong className="text-orange-600">${grandPendiente.toLocaleString()}</strong></p>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Pendiente: <strong className="text-orange-600 dark:text-orange-400">${grandPendiente.toLocaleString()}</strong></p>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-tight ${isFullyPaid ? 'bg-green-100 text-green-700' : grandPagado > 0 ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+              <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-tight ${isFullyPaid ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : grandPagado > 0 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'}`}>
                 {isFullyPaid ? '✓ Semana Liquidada' : grandPagado > 0 ? 'Pago Parcial' : 'Pendiente'}
               </span>
-              <p className="text-3xl font-black text-gray-900">{grandPorc}%</p>
+              <p className="text-3xl font-black text-gray-900 dark:text-agri-50">{grandPorc}%</p>
             </div>
           </div>
 
-          <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner mb-6">
+          <div className="w-full h-3 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner mb-6">
             <div
               className={`h-full transition-all duration-1000 ease-out ${isFullyPaid ? 'bg-green-500' : 'bg-agri-500'}`}
               style={{ width: `${Math.min(100, grandPorc)}%` }}
@@ -156,21 +156,21 @@ const NominaHistorialDetalle = () => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-agri-50 border border-agri-100 p-4 rounded-2xl">
-              <p className="text-[10px] text-agri-600 font-black uppercase tracking-widest">Nómina Semanal</p>
-              <p className="text-xl font-black text-agri-700">${totalNominaSemanal.toLocaleString()}</p>
+            <div className="bg-agri-50 dark:bg-agri-950/30 border border-agri-100 dark:border-agri-900/50 p-4 rounded-2xl">
+              <p className="text-[10px] text-agri-600 dark:text-agri-400 font-black uppercase tracking-widest">Nómina Semanal</p>
+              <p className="text-xl font-black text-agri-700 dark:text-agri-50">${totalNominaSemanal.toLocaleString()}</p>
             </div>
-            <div className="bg-purple-50 border border-purple-100 p-4 rounded-2xl">
-              <p className="text-[10px] text-purple-600 font-black uppercase tracking-widest">Cuadrillas</p>
-              <p className="text-xl font-black text-purple-700">${cuadrillaStats.total.toLocaleString()}</p>
+            <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/50 p-4 rounded-2xl">
+              <p className="text-[10px] text-purple-600 dark:text-purple-400 font-black uppercase tracking-widest">Cuadrillas</p>
+              <p className="text-xl font-black text-purple-700 dark:text-purple-50">${cuadrillaStats.total.toLocaleString()}</p>
             </div>
-            <div className="bg-green-50 border border-green-100 p-4 rounded-2xl">
-              <p className="text-[10px] text-green-600 font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efectivo</p>
-              <p className="text-xl font-black text-green-700">${grandEfectivo.toLocaleString()}</p>
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/50 p-4 rounded-2xl">
+              <p className="text-[10px] text-green-600 dark:text-green-400 font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efectivo</p>
+              <p className="text-xl font-black text-green-700 dark:text-green-50">${grandEfectivo.toLocaleString()}</p>
             </div>
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl">
-              <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Bancario</p>
-              <p className="text-xl font-black text-blue-700">${grandBanco.toLocaleString()}</p>
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 p-4 rounded-2xl">
+              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Bancario</p>
+              <p className="text-xl font-black text-blue-700 dark:text-blue-50">${grandBanco.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -184,36 +184,36 @@ const NominaHistorialDetalle = () => {
             <CircleDollarSign className="w-4 h-4" /> Nómina Semanal
           </h2>
           <div
-            onClick={() => navigate(`/nomina/pago/${semana}`, { state: { from: window.location.pathname } })}
-            className="group bg-white border border-gray-100 rounded-2xl p-5 hover:border-agri-200 hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-4"
+            onClick={() => navigate(`/dashboard/nomina/pago/${semana}`, { state: { from: window.location.pathname } })}
+            className="group bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-5 hover:border-agri-200 dark:hover:border-agri-500 transition-all cursor-pointer flex items-center justify-between gap-4"
           >
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${nominaStatus === 'Pagada' ? 'bg-green-50 text-green-600' : nominaPagado > 0 ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
+              <div className={`p-3 rounded-xl ${nominaStatus === 'Pagada' ? 'bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400' : nominaPagado > 0 ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400' : 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'}`}>
                 <CircleDollarSign className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <h3 className="text-base font-bold text-gray-900">Nómina de Empleados</h3>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${getStatusBadge(nominaStatus, nominaPagado, totalNominaSemanal).cls}`}>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-agri-50">Nómina de Empleados</h3>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${getStatusBadge(nominaStatus, nominaPagado, totalNominaSemanal).cls.replace('bg-', 'dark:bg-opacity-20 bg-')}`}>
                     {getStatusBadge(nominaStatus, nominaPagado, totalNominaSemanal).label}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-slate-400">
                   {rayasSemana.length} empleados •{' '}
-                  Total: <strong className="text-gray-700">${totalNominaSemanal.toLocaleString()}</strong>{' '}
-                  • Pagado: <strong className="text-green-600">${nominaPagado.toLocaleString()}</strong>
+                  Total: <strong className="text-gray-700 dark:text-agri-100">${totalNominaSemanal.toLocaleString()}</strong>{' '}
+                  • Pagado: <strong className="text-green-600 dark:text-green-400">${nominaPagado.toLocaleString()}</strong>
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="hidden sm:flex gap-4 text-xs">
                 <div className="flex flex-col items-end">
-                  <span className="text-gray-400 uppercase text-[9px]">Efectivo</span>
-                  <span className="font-bold text-gray-700">${nominaEfectivo.toLocaleString()}</span>
+                  <span className="text-gray-400 dark:text-slate-500 uppercase text-[9px]">Efectivo</span>
+                  <span className="font-bold text-gray-700 dark:text-agri-100">${nominaEfectivo.toLocaleString()}</span>
                 </div>
-                <div className="flex flex-col items-end border-l border-gray-100 pl-4">
-                  <span className="text-gray-400 uppercase text-[9px]">Bancario</span>
-                  <span className="font-bold text-gray-700">${nominaBanco.toLocaleString()}</span>
+                <div className="flex flex-col items-end border-l border-gray-100 dark:border-slate-800 pl-4">
+                  <span className="text-gray-400 dark:text-slate-500 uppercase text-[9px]">Bancario</span>
+                  <span className="font-bold text-gray-700 dark:text-agri-100">${nominaBanco.toLocaleString()}</span>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-agri-500 group-hover:translate-x-1 transition-all" />
@@ -240,8 +240,8 @@ const NominaHistorialDetalle = () => {
               return (
                 <div
                   key={c.id}
-                  onClick={() => navigate(`/nomina/cabo-pago/${c.id}`, { state: { from: window.location.pathname } })}
-                  className="group bg-white border border-gray-100 rounded-2xl p-5 hover:border-purple-200 hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-4"
+                  onClick={() => navigate(`/dashboard/nomina/cabo-pago/${c.id}`, { state: { from: window.location.pathname } })}
+                  className="group bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-5 hover:border-purple-200 dark:hover:border-purple-500 transition-all cursor-pointer flex items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`p-3 rounded-xl ${c.status === 'Pagada' ? 'bg-green-50 text-green-600' : pagado > 0 ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
@@ -249,15 +249,15 @@ const NominaHistorialDetalle = () => {
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="text-base font-bold text-gray-900">{c.cabo}</h3>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${status.cls}`}>
+                        <h3 className="text-base font-bold text-gray-900 dark:text-agri-50">{c.caboNombre}</h3>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${status.cls.replace('bg-', 'dark:bg-opacity-20 bg-')}`}>
                           {status.label}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-slate-400">
                         {c.huerta} • {c.personas} personas •{' '}
-                        Total: <strong className="text-gray-700">${total.toLocaleString()}</strong>{' '}
-                        • Pagado: <strong className="text-green-600">${pagado.toLocaleString()}</strong>
+                        Total: <strong className="text-gray-700 dark:text-agri-100">${total.toLocaleString()}</strong>{' '}
+                        • Pagado: <strong className="text-green-600 dark:text-green-400">${pagado.toLocaleString()}</strong>
                       </p>
                     </div>
                   </div>
