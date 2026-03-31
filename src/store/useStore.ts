@@ -102,6 +102,7 @@ export interface FolioVenta extends BaseRecord {
   metodo?: 'Efectivo' | 'Transferencia';
   idProducto?: string;
   esExportacion?: boolean;
+  clienteId?: string;
   abonos: Abono[];
   statusHistory: StatusCambio[];
   seasonId: string;
@@ -200,7 +201,7 @@ interface AppState {
   
   // Acciones
   setActiveSeason: (id: string) => void;
-  addTemporada: (temp: Partial<Temporada>) => void;
+  addTemporada: (temp: Partial<Temporada>) => string;
   updateTemporada: (id: string, data: Partial<Temporada>) => void;
   addCliente: (cliente: Omit<Cliente, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => string;
   updateCliente: (id: string, data: Partial<Cliente>) => void;
@@ -227,12 +228,12 @@ interface AppState {
   updateProducto: (id: string, data: Partial<Producto>) => void;
   toggleActivo: (catalog: 'proveedores' | 'huertas' | 'cabos' | 'empleados' | 'cuentasBancarias' | 'clientes' | 'productos' | 'temporadas', id: string) => void;
 
-  addCuadrilla: (cuadrilla: Omit<NominaCuadrilla, 'id' | 'syncStatus' | 'updatedAt' | 'activo' | 'pagos' | 'status'>) => void;
+  addCuadrilla: (cuadrilla: Omit<NominaCuadrilla, 'id' | 'syncStatus' | 'updatedAt' | 'activo' | 'pagos' | 'status'>) => string;
   actualizarCuadrilla: (id: string, data: Partial<NominaCuadrilla>) => void;
   
   // Nomina Semanal
   generarNominaActiva: (semana: string) => void;
-  addRayaSemanal: (raya: Omit<RayaSemanal, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => void;
+  addRayaSemanal: (raya: Omit<RayaSemanal, 'id' | 'syncStatus' | 'updatedAt' | 'activo'>) => string;
   toggleAsistencia: (idRaya: string, dia: DiaSemana) => void;
   setExtras: (idRaya: string, dia: DiaSemana, horasExtra: number, bonoExtra: number) => void;
   setAsistenciaMasiva: (semana: string, dia: DiaSemana, valor: boolean) => void;
@@ -602,17 +603,21 @@ export const useStore = create<AppState>((set) => ({
     }
   }),
 
-  addRayaSemanal: (rayaData) => set((state) => {
-    const newRecord: RayaSemanal = { 
-      ...rayaData, 
-      id: generateId(), 
-      syncStatus: 'pending' as const, 
-      updatedAt: new Date().toISOString() 
-    };
-    localDb.rayasSemanales.put(newRecord);
-    pushToCloud('rayasSemanales', newRecord);
-    return { rayasSemanales: [newRecord, ...state.rayasSemanales] };
-  }),
+  addRayaSemanal: (rayaData) => {
+    const newId = generateId();
+    set((state) => {
+      const newRecord: RayaSemanal = { 
+        ...rayaData, 
+        id: newId, 
+        syncStatus: 'pending' as const, 
+        updatedAt: new Date().toISOString() 
+      };
+      localDb.rayasSemanales.put(newRecord);
+      pushToCloud('rayasSemanales', newRecord);
+      return { rayasSemanales: [newRecord, ...state.rayasSemanales] };
+    });
+    return newId;
+  },
 
   addFolio: (folioData) => {
     const newId = generateId();
@@ -678,31 +683,34 @@ export const useStore = create<AppState>((set) => ({
     return newId;
   },
 
-  addCuadrilla: (cuadrillaData) => set((state) => {
-    const newRecord: NominaCuadrilla = { 
-      ...cuadrillaData, 
-      pagos: [], 
-      status: 'Parcial', 
-      seasonId: state.activeSeasonId,
-      id: generateId(), 
-      syncStatus: 'pending' as const, 
-      updatedAt: new Date().toISOString() 
-    };
-    localDb.cuadrillas.put(newRecord);
-    pushToCloud('cuadrillas', newRecord);
-    return { 
-      cuadrillas: [newRecord, ...state.cuadrillas],
-      alertas: [
-        { 
-          id: generateId(), 
-          type: 'info', 
-          text: `Nueva Cuadrilla: ${newRecord.caboNombre} (${newRecord.huerta})`, 
-          time: 'Ahora' 
-        }, 
-        ...state.alertas
-      ]
-    };
-  }),
+  addCuadrilla: (cuadrillaData) => {
+    const newId = generateId();
+    set((state) => {
+      const newRecord: NominaCuadrilla = { 
+        ...cuadrillaData, 
+        id: newId, 
+        pagos: [],
+        status: 'Parcial',
+        syncStatus: 'pending' as const, 
+        updatedAt: new Date().toISOString() 
+      };
+      localDb.cuadrillas.put(newRecord);
+      pushToCloud('cuadrillas', newRecord);
+      return { 
+        cuadrillas: [newRecord, ...state.cuadrillas],
+        alertas: [
+          { 
+            id: generateId(), 
+            type: 'info', 
+            text: `Nueva Cuadrilla: ${newRecord.caboNombre} (${newRecord.huerta})`, 
+            time: 'Ahora' 
+          }, 
+          ...state.alertas
+        ]
+      };
+    });
+    return newId;
+  },
 
   actualizarCuadrilla: (id, data) => set((state) => {
     const item = state.cuadrillas.find(c => c.id === id);

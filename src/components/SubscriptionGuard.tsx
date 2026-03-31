@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { 
-  Zap, ArrowRight, Leaf, CheckCircle2, Clock, 
+  Zap, Leaf, CheckCircle2, Clock, 
   University, Check, Copy, X, Smartphone, ArrowLeft, Loader2, ShieldCheck, Stars
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
