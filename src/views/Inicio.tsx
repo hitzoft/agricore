@@ -160,10 +160,9 @@ const Inicio = () => {
       {/* Activity Log */}
       <div className="card-base overflow-hidden">
         <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-800/20 flex items-center justify-between transition-colors">
-          <div>
-            <h2 className="title-primary text-xl">Actividad Reciente</h2>
-            <p className="label-tiny mt-1">Sincronizado con datos reales</p>
-          </div>
+           <div>
+             <h2 className="title-primary text-xl">Actividad Reciente</h2>
+           </div>
           <Calendar className="w-5 h-5 text-slate-300 dark:text-slate-600 transition-colors" />
         </div>
         <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[600px] overflow-y-auto">
