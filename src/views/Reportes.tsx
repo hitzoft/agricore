@@ -222,7 +222,7 @@ const Reportes = () => {
           'Agricore'
         );
         state.addToast('Inventario de Salida generado con éxito', 'success');
-      } else if (type === 'CXC') {
+      } else if (type === 'Cartera') {
         const { generateReceivablesReportPDF } = await import('../utils/reportGenerator');
         await generateReceivablesReportPDF(
           currentSeason?.nombre || 'General',
