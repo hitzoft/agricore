@@ -7,12 +7,10 @@ import {
   Zap,
   Truck,
   ArrowUpRight,
-  DollarSign,
-  Database
-} from 'lucide-react';
+  DollarSign
+ } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useAuth } from '../context/AuthContext';
-import { injectTestData } from '../utils/injectTestData';
 
 const Inicio = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -103,12 +101,6 @@ const Inicio = () => {
           <p className="subtitle-secondary !text-sm max-w-md">Centro de mando y control operativo de Agricore.</p>
         </div>
 
-        <button
-          onClick={injectTestData}
-          className="flex items-center gap-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-600/20 transition-all active:scale-95"
-        >
-          <Database className="w-4 h-4" /> Cargar Datos de Prueba
-        </button>
       </div>
 
       {/* Grid Quick Actions / status */}
